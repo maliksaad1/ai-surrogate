@@ -33,8 +33,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "your-project-id-here"
+        "projectId": "89d9aee3-295e-400c-92e5-240018eed870"
       }
-    }
+    },
+    "owner": "adadssa"
   }
 }
