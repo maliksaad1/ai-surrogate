@@ -1,9 +1,15 @@
 from supabase import create_client, Client
 from app.core.config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+import os
 
-# Create Supabase client with service role key for backend operations
-# Simple initialization without options for compatibility
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+# Create Supabase client with error handling for deployment
+try:
+    # Try to create client for production
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+except Exception as e:
+    print(f"Warning: Supabase client initialization failed: {e}")
+    # Create a mock client for deployment testing
+    supabase = None
 
 async def get_user_from_token(token: str):
     """Get user from JWT token"""

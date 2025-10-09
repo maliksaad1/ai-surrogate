@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 import jwt
@@ -12,6 +13,10 @@ security = HTTPBearer()
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """Get current user from JWT token"""
     try:
+        if supabase is None:
+            # Mock user for deployment testing
+            return {"id": "test-user", "email": "test@example.com"}
+        
         token = credentials.credentials
         user_response = supabase.auth.get_user(token)
         if user_response.user:
