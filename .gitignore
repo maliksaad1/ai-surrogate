@@ -1,0 +1,114 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# React Native
+.react-native/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Bundle artifact
+*.jsbundle
+
+# CocoaPods
+/ios/Pods/
+
+# Temporary files
+*.tmp
+*.temp
+/storage/temp/
+
+# Audio files (but keep example files)
+/storage/audio/
+!/storage/audio/.gitkeep
+
+# Docker
+.dockerignore
+
+# Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# FastAPI
+.pytest_cache
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# AI Models (large files)
+*.model
+*.bin
+*.safetensors
