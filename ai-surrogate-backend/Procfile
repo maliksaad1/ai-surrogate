@@ -1,0 +1,2 @@
+# Render deployment configuration
+web: python main.py

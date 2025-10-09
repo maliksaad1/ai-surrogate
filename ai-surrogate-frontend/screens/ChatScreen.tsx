@@ -22,6 +22,7 @@ import { Colors, Fonts, Spacing, BorderRadius } from '../constants/theme';
 import { Message, Thread } from '../types';
 import { supabase } from '../services/supabase';
 import { RootStackParamList } from '../types';
+import { API_BASE_URL } from '../config/api';
 
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
 type ChatScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Chat'>;
@@ -31,8 +32,8 @@ interface Props {
   navigation: ChatScreenNavigationProp;
 }
 
-// Note: AudioRecorderPlayer needs to be properly initialized
-// const audioRecorderPlayer = new AudioRecorderPlayer();
+// Note: AudioRecorderPlayer initialization
+const audioRecorderPlayer = AudioRecorderPlayer;
 
 export default function ChatScreen({ route, navigation }: Props) {
   const { threadId } = route.params;
@@ -170,7 +171,7 @@ export default function ChatScreen({ route, navigation }: Props) {
       if (messageError) throw messageError;
 
       // Send to backend API for AI response
-      const response = await fetch('http://localhost:8000/chat', {
+      const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -228,7 +229,7 @@ export default function ChatScreen({ route, navigation }: Props) {
         formData.append('user_id', user.id);
       }
 
-      const response = await fetch('http://localhost:8000/voice', {
+      const response = await fetch(`${API_BASE_URL}/voice`, {
         method: 'POST',
         body: formData,
         headers: {
