@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional, List
 from datetime import datetime
 
 from app.models.schemas import ChatRequest, ChatResponse, MessageCreate, Message
 from app.core.database import supabase
 from app.api.auth import get_current_user
-from app.agents.orchestrator import agent_orchestrator
+# from app.agents.orchestrator import agent_orchestrator  # Temporarily disabled for deployment
 from app.services.voice_service import voice_service
 
 router = APIRouter()
@@ -54,18 +55,13 @@ async def send_message(
             memory_summaries = [mem["summary"] for mem in memory_response.data if mem["summary"]]
             memory_context = "\n".join(memory_summaries)
         
-        # Generate AI response using agent orchestrator
-        ai_result = await agent_orchestrator.process_message(
-            message=chat_request.message,
-            user_id=current_user.id,
-            thread_id=chat_request.thread_id,
-            context=context,
-            memory=memory_context
-        )
+        # Generate AI response using simple AI service (agent orchestrator temporarily disabled)
+        # ai_result = await agent_orchestrator.process_message(...)
         
-        ai_response = ai_result["response"]
-        emotion = ai_result["emotion"]
-        metadata = ai_result.get("metadata", {})
+        # Temporary mock response for deployment
+        ai_response = f"I understand your message: '{chat_request.message}'. This is a test response while the AI system is being deployed."
+        emotion = "neutral"
+        metadata = {"deployment_mode": True}
         
         # Generate voice response if requested
         audio_url = None
