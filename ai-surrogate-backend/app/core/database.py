@@ -2,7 +2,14 @@ from supabase import create_client, Client
 from app.core.config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 # Create Supabase client with service role key for backend operations
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+# Use options to ensure compatibility with latest versions
+options = {
+    "auth": {
+        "auto_refresh_token": True,
+        "persist_session": False
+    }
+}
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, options)
 
 async def get_user_from_token(token: str):
     """Get user from JWT token"""
