@@ -11,7 +11,7 @@ const config = {
     }),
   },
   production: {
-    API_BASE_URL: 'https://your-backend-domain.com', // Replace with your deployed backend URL
+    API_BASE_URL: 'https://ai-surrogate.onrender.com', // Your deployed backend URL
   },
 };
 
