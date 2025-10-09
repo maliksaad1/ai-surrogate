@@ -36,7 +36,7 @@ app.include_router(memory.router, prefix="/memory", tags=["memory"])
 
 @app.get("/")
 async def root():
-    return {"message": "AI Surrogate Backend API", "version": "1.0.0"}
+    return {"message": "AI Surrogate Backend API", "version": "1.0.1", "status": "deployed"}
 
 @app.get("/health")
 async def health_check():
