@@ -1,31 +1,35 @@
-import whisper
+# import whisper  # Temporarily disabled for deployment
 from gtts import gTTS
 import tempfile
 import os
 import asyncio
 from typing import Optional
 import aiofiles
-from mutagen import File as MutagenFile
+# from mutagen import File as MutagenFile  # Temporarily disabled
 
 from app.core.config import ALLOWED_AUDIO_TYPES, MAX_FILE_SIZE
 from app.core.database import supabase
 
 class VoiceService:
     def __init__(self):
-        # Load Whisper model (base model for good balance of speed/accuracy)
-        self.whisper_model = whisper.load_model("base")
+        # Whisper model loading temporarily disabled for deployment
+        # self.whisper_model = whisper.load_model("base")
+        pass
 
     async def transcribe_audio(self, audio_file_path: str) -> str:
-        """Transcribe audio file to text using Whisper"""
+        """Transcribe audio file to text using Whisper (temporarily disabled)"""
         try:
-            # Run Whisper transcription in thread pool to avoid blocking
-            result = await asyncio.to_thread(
-                self.whisper_model.transcribe,
-                audio_file_path,
-                language="en"  # Can be made configurable
-            )
+            # Temporary placeholder - return indicating voice was received
+            # TODO: Re-enable Whisper after deployment dependencies are resolved
+            return "[Voice message received - STT temporarily disabled for deployment]"
             
-            return result["text"].strip()
+            # Original Whisper code (commented out for deployment):
+            # result = await asyncio.to_thread(
+            #     self.whisper_model.transcribe,
+            #     audio_file_path,
+            #     language="en"
+            # )
+            # return result["text"].strip()
             
         except Exception as e:
             print(f"Error transcribing audio: {e}")
@@ -80,21 +84,18 @@ class VoiceService:
             raise Exception("Failed to upload audio file")
 
     async def validate_audio_file(self, file_path: str, max_size: int = MAX_FILE_SIZE) -> bool:
-        """Validate audio file format and size"""
+        """Validate audio file format and size (simplified for deployment)"""
         try:
             # Check file size
             file_size = os.path.getsize(file_path)
             if file_size > max_size:
                 raise Exception(f"File too large. Maximum size is {max_size/1024/1024}MB")
             
-            # Check file format using mutagen
-            audio_file = MutagenFile(file_path)
-            if audio_file is None:
-                raise Exception("Invalid audio file format")
-            
-            # Check duration (max 5 minutes)
-            if hasattr(audio_file, 'info') and audio_file.info.length > 300:
-                raise Exception("Audio file too long. Maximum duration is 5 minutes")
+            # Simplified validation - just check if file exists and has reasonable size
+            # TODO: Re-enable mutagen validation after deployment
+            # audio_file = MutagenFile(file_path)
+            # if audio_file is None:
+            #     raise Exception("Invalid audio file format")
             
             return True
             
