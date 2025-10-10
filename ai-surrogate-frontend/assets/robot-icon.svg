@@ -1,0 +1,31 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="512" fill="#0A0A0A"/>
+  
+  <!-- Robot head -->
+  <rect x="256" y="256" width="512" height="384" rx="64" fill="#00FFFF" stroke="#FFFFFF" stroke-width="8"/>
+  
+  <!-- Eyes -->
+  <circle cx="384" cy="384" r="48" fill="#0A0A0A"/>
+  <circle cx="640" cy="384" r="48" fill="#0A0A0A"/>
+  
+  <!-- Eye glow -->
+  <circle cx="384" cy="384" r="24" fill="#00FFFF"/>
+  <circle cx="640" cy="384" r="24" fill="#00FFFF"/>
+  
+  <!-- Mouth -->
+  <rect x="432" y="512" width="160" height="32" rx="16" fill="#0A0A0A"/>
+  
+  <!-- Antenna -->
+  <rect x="508" y="192" width="8" height="64" fill="#FFFFFF"/>
+  <circle cx="512" cy="176" r="16" fill="#00FFFF"/>
+  
+  <!-- Circuit patterns -->
+  <rect x="320" y="480" width="64" height="4" fill="#007BFF"/>
+  <rect x="320" y="492" width="48" height="4" fill="#007BFF"/>
+  <rect x="640" y="480" width="64" height="4" fill="#007BFF"/>
+  <rect x="640" y="492" width="48" height="4" fill="#007BFF"/>
+  
+  <!-- AI text -->
+  <text x="512" y="580" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#FFFFFF">AI</text>
+</svg>
