@@ -6,8 +6,9 @@ from datetime import datetime
 from app.models.schemas import ChatRequest, ChatResponse, MessageCreate, Message
 from app.core.database import supabase
 from app.api.auth import get_current_user
-# from app.agents.orchestrator import agent_orchestrator  # Temporarily disabled for deployment
 from app.services.voice_service import voice_service
+# Re-enable AI service for real responses
+from app.services.ai_service import ai_service
 
 router = APIRouter()
 
@@ -55,13 +56,22 @@ async def send_message(
             memory_summaries = [mem["summary"] for mem in memory_response.data if mem["summary"]]
             memory_context = "\n".join(memory_summaries)
         
-        # Generate AI response using simple AI service (agent orchestrator temporarily disabled)
-        # ai_result = await agent_orchestrator.process_message(...)
-        
-        # Temporary mock response for deployment
-        ai_response = f"I understand your message: '{chat_request.message}'. This is a test response while the AI system is being deployed."
-        emotion = "neutral"
-        metadata = {"deployment_mode": True}
+        # Generate AI response using AI service
+        try:
+            # Use the AI service for generating responses
+            ai_response = await ai_service.generate_chat_response(
+                message=chat_request.message,
+                context=context,
+                memory=memory_context
+            )
+            emotion = "neutral"  # Can be enhanced with emotion detection
+            metadata = {"source": "ai_service"}
+        except Exception as ai_error:
+            print(f"AI service error: {ai_error}")
+            # Fallback to simple response if AI service fails
+            ai_response = f"I understand your message: '{chat_request.message}'. I'm having some trouble with my AI processing right now, but I'm here to help!"
+            emotion = "neutral"
+            metadata = {"fallback": True}
         
         # Generate voice response if requested
         audio_url = None

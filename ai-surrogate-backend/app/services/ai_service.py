@@ -3,6 +3,7 @@ from typing import Dict, Any, List, Optional
 import json
 import asyncio
 from datetime import datetime
+import google.generativeai as genai
 
 from app.core.config import GEMINI_API_KEY, DEFAULT_MODEL_TEMPERATURE, MAX_RESPONSE_LENGTH
 
@@ -13,6 +14,15 @@ class AIService:
     def __init__(self):
         self.model = genai.GenerativeModel('gemini-1.5-flash')
         self.temperature = DEFAULT_MODEL_TEMPERATURE
+
+    async def generate_chat_response(self, message: str, context: Optional[str] = None, memory: Optional[str] = None) -> str:
+        """Generate a chat response using Gemini AI"""
+        try:
+            result = await self.generate_response(message, context, memory)
+            return result["content"]
+        except Exception as e:
+            print(f"Error generating chat response: {e}")
+            return "I'm sorry, I'm having trouble processing your message right now. Could you please try again?"
 
     async def generate_response(self, message: str, context: Optional[str] = None, user_memory: Optional[str] = None) -> Dict[str, Any]:
         """Generate AI response using Gemini"""
