@@ -36,7 +36,34 @@ app.include_router(memory.router, prefix="/memory", tags=["memory"])
 
 @app.get("/")
 async def root():
-    return {"message": "AI Surrogate Backend API", "version": "1.0.2", "status": "ready for deployment"}
+    return {"message": "AI Surrogate Backend API", "version": "1.0.3", "status": "ready for AI responses", "timestamp": "2025-01-09"}
+
+@app.get("/test-ai")
+async def test_ai():
+    """Test endpoint to verify AI functionality"""
+    try:
+        from app.agents.simple_orchestrator import agent_orchestrator
+        
+        result = await agent_orchestrator.process_message(
+            message="Hello, test message",
+            user_id="test-user",
+            thread_id="test-thread",
+            context=None,
+            memory=None
+        )
+        
+        return {
+            "status": "AI system working",
+            "test_response": result["response"][:100] + "...",
+            "emotion": result["emotion"],
+            "agent_used": result.get("agent_used", "unknown")
+        }
+    except Exception as e:
+        return {
+            "status": "AI system error",
+            "error": str(e),
+            "fallback": "Using basic responses"
+        }
 
 @app.get("/health")
 async def health_check():
