@@ -7,26 +7,48 @@ import google.generativeai as genai
 
 from app.core.config import GEMINI_API_KEY, DEFAULT_MODEL_TEMPERATURE, MAX_RESPONSE_LENGTH
 
-# Configure Gemini AI
-genai.configure(api_key=GEMINI_API_KEY)
+# Configure Gemini AI with error handling
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+except Exception as e:
+    print(f"Warning: Gemini AI configuration failed: {e}")
 
 class AIService:
     def __init__(self):
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
-        self.temperature = DEFAULT_MODEL_TEMPERATURE
+        try:
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            self.temperature = DEFAULT_MODEL_TEMPERATURE
+            self.configured = True
+        except Exception as e:
+            print(f"Warning: AI model initialization failed: {e}")
+            self.model = None
+            self.configured = False
 
     async def generate_chat_response(self, message: str, context: Optional[str] = None, memory: Optional[str] = None) -> str:
         """Generate a chat response using Gemini AI"""
         try:
+            # Check if we have a valid API key
+            if not GEMINI_API_KEY or GEMINI_API_KEY == "your-gemini-api-key-here":
+                return "Hello! I'm your AI Surrogate companion. I'm currently setting up my AI capabilities. How can I help you today?"
+            
             result = await self.generate_response(message, context, memory)
             return result["content"]
         except Exception as e:
             print(f"Error generating chat response: {e}")
-            return "I'm sorry, I'm having trouble processing your message right now. Could you please try again?"
+            # Provide a helpful fallback response
+            return f"I understand you said: '{message}'. I'm having some technical difficulties right now, but I'm here to listen and help however I can!"
 
     async def generate_response(self, message: str, context: Optional[str] = None, user_memory: Optional[str] = None) -> Dict[str, Any]:
         """Generate AI response using Gemini"""
         try:
+            # Check if AI is properly configured
+            if not self.configured or not self.model:
+                return {
+                    "content": f"Hello! Thanks for your message: '{message}'. I'm your AI companion and I'm here to help, though I'm currently running in basic mode.",
+                    "emotion": "friendly",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+
             # Build context prompt
             system_prompt = """You are an AI Surrogate - a compassionate, intelligent companion designed to provide emotional support, engaging conversation, and helpful assistance. 
 
