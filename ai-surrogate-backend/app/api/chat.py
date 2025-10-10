@@ -7,8 +7,8 @@ from app.models.schemas import ChatRequest, ChatResponse, MessageCreate, Message
 from app.core.database import supabase
 from app.api.auth import get_current_user
 from app.services.voice_service import voice_service
-# Re-enable AI service for real responses
-from app.services.ai_service import ai_service
+# Use our custom agent orchestrator
+from app.agents.simple_orchestrator import agent_orchestrator
 
 router = APIRouter()
 
@@ -56,20 +56,24 @@ async def send_message(
             memory_summaries = [mem["summary"] for mem in memory_response.data if mem["summary"]]
             memory_context = "\n".join(memory_summaries)
         
-        # Generate AI response using AI service
+        # Generate AI response using our custom agent orchestrator
         try:
-            # Use the AI service for generating responses
-            ai_response = await ai_service.generate_chat_response(
+            ai_result = await agent_orchestrator.process_message(
                 message=chat_request.message,
+                user_id=current_user["id"] if "id" in current_user else "anonymous",
+                thread_id=chat_request.thread_id,
                 context=context,
                 memory=memory_context
             )
-            emotion = "neutral"  # Can be enhanced with emotion detection
-            metadata = {"source": "ai_service"}
+            
+            ai_response = ai_result["response"]
+            emotion = ai_result["emotion"]
+            metadata = ai_result["metadata"]
+            
         except Exception as ai_error:
-            print(f"AI service error: {ai_error}")
-            # Fallback to simple response if AI service fails
-            ai_response = f"I understand your message: '{chat_request.message}'. I'm having some trouble with my AI processing right now, but I'm here to help!"
+            print(f"Agent orchestrator error: {ai_error}")
+            # Fallback to simple response
+            ai_response = f"I understand your message: '{chat_request.message}'. I'm here to help and chat with you!"
             emotion = "neutral"
             metadata = {"fallback": True}
         

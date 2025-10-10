@@ -131,12 +131,20 @@ async def process_voice_message(
             
             message_response = supabase.table("messages").insert(user_message).execute()
             
-            # Import here to avoid circular imports (temporarily disabled for deployment)
-            # from app.agents.orchestrator import agent_orchestrator
+            # Import here to avoid circular imports
+            from app.agents.simple_orchestrator import agent_orchestrator
             
-            # Mock AI response for deployment testing
-            ai_response = f"I understand your message: '{transcribed_text}'. This is a test response while the AI agent is being deployed."
-            emotion = "neutral"
+            # Generate AI response using orchestrator
+            ai_result = await agent_orchestrator.process_message(
+                message=transcribed_text,
+                user_id=current_user["id"] if "id" in current_user else "anonymous",
+                thread_id=thread_id,
+                context="",  # Voice context can be added later
+                memory=""   # Voice memory can be added later
+            )
+            
+            ai_response = ai_result["response"]
+            emotion = ai_result["emotion"]
             
             # Generate AI speech if requested
             ai_audio_url = None
