@@ -93,6 +93,58 @@ async def register(auth_data: AuthRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/confirm")
+async def confirm_email(token: str = None, type: str = None):
+    """Handle email confirmation"""
+    try:
+        if not token:
+            return {"message": "Email confirmation token is required"}
+        
+        if supabase is None:
+            return {"message": "Email confirmed successfully (mock)"}
+        
+        # Verify the email confirmation token
+        response = supabase.auth.verify_otp({
+            "token_hash": token,
+            "type": "email"
+        })
+        
+        if response.user:
+            # Try to create user profile if it doesn't exist
+            try:
+                user_data = {
+                    "id": response.user.id,
+                    "email": response.user.email,
+                    "preferences": {}
+                }
+                
+                # Check if profile exists
+                existing_profile = supabase.table("users").select("id").eq("id", response.user.id).execute()
+                
+                if not existing_profile.data:
+                    # Create profile if it doesn't exist
+                    profile_response = supabase.table("users").insert(user_data).execute()
+                    
+            except Exception as profile_error:
+                print(f"Profile creation during confirmation failed: {profile_error}")
+                # Don't fail confirmation if profile creation fails
+                pass
+            
+            return {
+                "message": "Email confirmed successfully!",
+                "user_id": response.user.id,
+                "redirect": "Please return to the app to continue"
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Invalid confirmation token")
+            
+    except Exception as e:
+        print(f"Email confirmation error: {e}")
+        return {
+            "message": "Email confirmation failed. Please try again or contact support.",
+            "error": str(e)
+        }
+
 @router.post("/logout")
 async def logout(current_user: dict = Depends(get_current_user)):
     """Logout user"""
