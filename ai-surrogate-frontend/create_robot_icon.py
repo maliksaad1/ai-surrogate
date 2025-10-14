@@ -8,95 +8,212 @@ try:
     import os
     
     def create_robot_icon(size=1024):
-        # Create a new image with a dark background
-        img = Image.new('RGBA', (size, size), (10, 10, 10, 255))
+        # Create a new image with gradient-like dark background
+        img = Image.new('RGBA', (size, size), (15, 20, 30, 255))
         draw = ImageDraw.Draw(img)
         
-        # Colors
-        cyan = (0, 255, 255, 255)
-        blue = (0, 123, 255, 255)
+        # Enhanced color palette
+        cyan_bright = (0, 255, 255, 255)
+        cyan_glow = (100, 255, 255, 255)
+        blue_accent = (0, 150, 255, 255)
         white = (255, 255, 255, 255)
-        dark = (10, 10, 10, 255)
+        dark_gray = (30, 35, 45, 255)
+        darker = (10, 15, 20, 255)
+        light_gray = (200, 210, 220, 255)
         
-        # Robot head (rounded rectangle)
-        head_margin = size // 8
-        head_size = size - 2 * head_margin
-        head_radius = size // 16
+        # Robot head with metallic look
+        head_margin = size // 7
+        head_width = size - 2 * head_margin
+        head_height = int(head_width * 1.1)
+        head_radius = size // 12
         
-        # Draw robot head background
+        # Main head body with shadow effect
+        shadow_offset = size // 64
         draw.rounded_rectangle(
-            [head_margin, head_margin + size//16, head_margin + head_size, head_margin + head_size - size//16],
+            [head_margin + shadow_offset, head_margin + shadow_offset, 
+             head_margin + head_width + shadow_offset, head_margin + head_height + shadow_offset],
             radius=head_radius,
-            fill=cyan,
-            outline=white,
-            width=size//128
+            fill=darker
         )
         
-        # Eyes
-        eye_size = size // 12
+        # Main head with gradient effect (simulate with multiple rectangles)
+        draw.rounded_rectangle(
+            [head_margin, head_margin, head_margin + head_width, head_margin + head_height],
+            radius=head_radius,
+            fill=dark_gray,
+            outline=cyan_bright,
+            width=size//100
+        )
+        
+        # Top panel accent
+        panel_height = size // 20
+        draw.rounded_rectangle(
+            [head_margin + size//32, head_margin + size//32, 
+             head_margin + head_width - size//32, head_margin + panel_height],
+            radius=size//64,
+            fill=cyan_bright
+        )
+        
+        # Eyes - more sophisticated design
+        eye_width = size // 8
+        eye_height = size // 10
         eye_y = head_margin + size // 4
         left_eye_x = head_margin + size // 4
         right_eye_x = head_margin + 3 * size // 4
         
-        # Draw eye sockets
-        draw.ellipse([left_eye_x - eye_size, eye_y - eye_size, left_eye_x + eye_size, eye_y + eye_size], fill=dark)
-        draw.ellipse([right_eye_x - eye_size, eye_y - eye_size, right_eye_x + eye_size, eye_y + eye_size], fill=dark)
+        # Eye backgrounds (sockets)
+        for eye_x in [left_eye_x, right_eye_x]:
+            draw.rounded_rectangle(
+                [eye_x - eye_width, eye_y - eye_height, 
+                 eye_x + eye_width, eye_y + eye_height],
+                radius=size//64,
+                fill=darker,
+                outline=blue_accent,
+                width=size//256
+            )
         
-        # Draw glowing eyes
-        glow_size = eye_size // 2
-        draw.ellipse([left_eye_x - glow_size, eye_y - glow_size, left_eye_x + glow_size, eye_y + glow_size], fill=cyan)
-        draw.ellipse([right_eye_x - glow_size, eye_y - glow_size, right_eye_x + glow_size, eye_y + glow_size], fill=cyan)
+        # Glowing eye cores
+        glow_size = eye_width // 2
+        for eye_x in [left_eye_x, right_eye_x]:
+            # Outer glow
+            draw.ellipse(
+                [eye_x - glow_size*1.5, eye_y - glow_size*1.2, 
+                 eye_x + glow_size*1.5, eye_y + glow_size*1.2],
+                fill=cyan_glow
+            )
+            # Inner bright core
+            draw.ellipse(
+                [eye_x - glow_size*0.8, eye_y - glow_size*0.6, 
+                 eye_x + glow_size*0.8, eye_y + glow_size*0.6],
+                fill=cyan_bright
+            )
+            # Highlight
+            highlight_size = glow_size // 3
+            draw.ellipse(
+                [eye_x - glow_size*0.3, eye_y - glow_size*0.4, 
+                 eye_x + highlight_size, eye_y],
+                fill=white
+            )
         
-        # Mouth
+        # Face plate details
         mouth_y = head_margin + 2 * size // 3
-        mouth_width = size // 6
-        mouth_height = size // 32
+        mouth_width = size // 5
+        mouth_height = size // 48
         mouth_x = size // 2 - mouth_width // 2
         
-        draw.rounded_rectangle(
-            [mouth_x, mouth_y, mouth_x + mouth_width, mouth_y + mouth_height],
-            radius=mouth_height//2,
-            fill=dark
+        # Mouth with segments
+        segment_count = 5
+        segment_width = mouth_width // segment_count
+        for i in range(segment_count):
+            if i % 2 == 0:
+                draw.rectangle(
+                    [mouth_x + i * segment_width, mouth_y, 
+                     mouth_x + (i + 1) * segment_width - size//256, mouth_y + mouth_height],
+                    fill=cyan_bright
+                )
+        
+        # Antenna with detail
+        antenna_x = size // 2
+        antenna_base_y = head_margin
+        antenna_top_y = head_margin - size // 12
+        antenna_width = size // 96
+        
+        # Antenna body
+        draw.rectangle(
+            [antenna_x - antenna_width*2, antenna_top_y + size//64, 
+             antenna_x + antenna_width*2, antenna_base_y],
+            fill=light_gray
         )
         
-        # Antenna
-        antenna_x = size // 2
-        antenna_top = head_margin - size // 16
-        antenna_height = size // 16
-        antenna_width = size // 128
+        # Antenna tip with glow
+        tip_size = size // 24
+        draw.ellipse(
+            [antenna_x - tip_size, antenna_top_y - tip_size, 
+             antenna_x + tip_size, antenna_top_y + tip_size],
+            fill=cyan_glow,
+            outline=cyan_bright,
+            width=size//256
+        )
+        draw.ellipse(
+            [antenna_x - tip_size//2, antenna_top_y - tip_size//2, 
+             antenna_x + tip_size//2, antenna_top_y + tip_size//2],
+            fill=white
+        )
         
-        draw.rectangle([antenna_x - antenna_width, antenna_top, antenna_x + antenna_width, head_margin], fill=white)
-        draw.ellipse([antenna_x - size//32, antenna_top - size//32, antenna_x + size//32, antenna_top + size//32], fill=cyan)
+        # Circuit patterns - more intricate
+        circuit_y_base = head_margin + size // 2
         
-        # Circuit patterns
-        circuit_y1 = head_margin + size // 2
-        circuit_y2 = circuit_y1 + size // 32
-        circuit_width = size // 8
-        circuit_height = size // 256
+        # Left side circuits
+        for i, offset in enumerate([0, size//32, size//16]):
+            circuit_length = size // 8 - i * size // 32
+            draw.rectangle(
+                [head_margin + size//16, circuit_y_base + offset, 
+                 head_margin + size//16 + circuit_length, circuit_y_base + offset + size//256],
+                fill=blue_accent if i % 2 == 0 else cyan_bright
+            )
+            # Circuit nodes
+            for j in range(3):
+                node_x = head_margin + size//16 + j * circuit_length // 2
+                node_size = size // 128
+                draw.ellipse(
+                    [node_x - node_size, circuit_y_base + offset - node_size,
+                     node_x + node_size, circuit_y_base + offset + node_size],
+                    fill=cyan_bright
+                )
         
-        # Left circuits
-        draw.rectangle([head_margin + size//8, circuit_y1, head_margin + size//8 + circuit_width, circuit_y1 + circuit_height], fill=blue)
-        draw.rectangle([head_margin + size//8, circuit_y2, head_margin + size//8 + circuit_width//2, circuit_y2 + circuit_height], fill=blue)
+        # Right side circuits (mirror)
+        for i, offset in enumerate([0, size//32, size//16]):
+            circuit_length = size // 8 - i * size // 32
+            circuit_x = head_margin + head_width - size//16 - circuit_length
+            draw.rectangle(
+                [circuit_x, circuit_y_base + offset,
+                 circuit_x + circuit_length, circuit_y_base + offset + size//256],
+                fill=blue_accent if i % 2 == 0 else cyan_bright
+            )
+            # Circuit nodes
+            for j in range(3):
+                node_x = circuit_x + j * circuit_length // 2
+                node_size = size // 128
+                draw.ellipse(
+                    [node_x - node_size, circuit_y_base + offset - node_size,
+                     node_x + node_size, circuit_y_base + offset + node_size],
+                    fill=cyan_bright
+                )
         
-        # Right circuits  
-        draw.rectangle([head_margin + 5*size//8, circuit_y1, head_margin + 5*size//8 + circuit_width, circuit_y1 + circuit_height], fill=blue)
-        draw.rectangle([head_margin + 5*size//8, circuit_y2, head_margin + 5*size//8 + circuit_width//2, circuit_y2 + circuit_height], fill=blue)
+        # Chin/bottom detail
+        chin_y = head_margin + head_height - size // 16
+        chin_width = size // 3
+        chin_height = size // 32
+        draw.rounded_rectangle(
+            [size//2 - chin_width//2, chin_y, size//2 + chin_width//2, chin_y + chin_height],
+            radius=size//64,
+            fill=darker,
+            outline=blue_accent,
+            width=size//256
+        )
         
-        # AI text
+        # AI text with better styling
         try:
-            font_size = size // 12
+            font_size = size // 10
             font = ImageFont.truetype("arial.ttf", font_size)
         except:
-            font = ImageFont.load_default()
+            try:
+                font = ImageFont.truetype("Arial.ttf", font_size)
+            except:
+                font = ImageFont.load_default()
         
         text = "AI"
         text_bbox = draw.textbbox((0, 0), text, font=font)
         text_width = text_bbox[2] - text_bbox[0]
         text_height = text_bbox[3] - text_bbox[1]
         text_x = size // 2 - text_width // 2
-        text_y = head_margin + 3 * size // 4 - text_height // 2
+        text_y = head_margin + 4 * size // 5 - text_height // 2
         
-        draw.text((text_x, text_y), text, font=font, fill=white)
+        # Text shadow
+        shadow_offset = size // 128
+        draw.text((text_x + shadow_offset, text_y + shadow_offset), text, font=font, fill=darker)
+        # Main text with gradient effect
+        draw.text((text_x, text_y), text, font=font, fill=cyan_bright)
         
         return img
     
