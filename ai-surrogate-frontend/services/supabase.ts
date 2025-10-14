@@ -8,6 +8,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // Don't redirect to backend, handle in app
+    flowType: 'pkce',
   },
 });
 

@@ -13,7 +13,7 @@ import { RootStackParamList, MainTabParamList } from './types';
 import OnboardingScreen from './screens/OnboardingScreen';
 import AuthScreen from './screens/AuthScreen';
 import HomeScreen from './screens/HomeScreen';
-import ChatScreen from './screens/ChatScreenSimple';
+import ChatScreen from './screens/ChatScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import ProfileScreen from './screens/ProfileScreen';
 

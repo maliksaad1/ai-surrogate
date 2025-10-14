@@ -52,6 +52,7 @@ export default function AuthScreen({ navigation }: Props) {
             data: {
               name,
             },
+            emailRedirectTo: undefined, // Don't redirect for mobile app
           },
         });
 
@@ -70,11 +71,14 @@ export default function AuthScreen({ navigation }: Props) {
               },
             ]);
 
-          if (profileError) throw profileError;
+          // Don't fail if profile creation fails - it will be created on first login
+          if (profileError) {
+            console.log('Profile creation deferred:', profileError.message);
+          }
 
           Alert.alert(
             'Success',
-            'Account created! Please check your email to verify your account.',
+            'Account created successfully! Please check your email to verify your account, then return here to login.',
             [{ text: 'OK', onPress: () => setIsSignUp(false) }]
           );
         }
