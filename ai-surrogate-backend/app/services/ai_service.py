@@ -25,10 +25,10 @@ class AIService:
             print(f"GEMINI_API_KEY length: {len(GEMINI_API_KEY) if GEMINI_API_KEY else 0}")
             
             if GEMINI_API_KEY and GEMINI_API_KEY != "your-gemini-api-key-here" and len(GEMINI_API_KEY) > 20:
-                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                self.model = genai.GenerativeModel('gemini-pro')
                 self.temperature = DEFAULT_MODEL_TEMPERATURE
                 self.configured = True
-                print(f"✓ AI Service initialized successfully with Gemini 1.5 Flash")
+                print(f"✓ AI Service initialized successfully with Gemini Pro")
             else:
                 print(f"⚠ AI Service initializing in fallback mode - API key invalid or missing")
                 self.model = None
