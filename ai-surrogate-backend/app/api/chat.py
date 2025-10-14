@@ -20,9 +20,9 @@ async def send_message(
     """Send a text message and get AI response"""
     try:
         # Verify thread ownership
-        thread_check = supabase.table("threads").select("id").eq("id", chat_request.thread_id).eq("user_id", current_user.id).single()
+        thread_check = supabase.table("threads").select("id").eq("id", chat_request.thread_id).eq("user_id", current_user["id"]).execute()
         
-        if not thread_check.data:
+        if not thread_check.data or len(thread_check.data) == 0:
             raise HTTPException(status_code=404, detail="Thread not found")
         
         # Save user message
@@ -49,7 +49,7 @@ async def send_message(
             context = "\n".join(context_messages)
         
         # Get user memory for context
-        memory_response = supabase.table("memory").select("summary, context").eq("user_id", current_user.id).order("created_at", desc=True).limit(3).execute()
+        memory_response = supabase.table("memory").select("summary, context").eq("user_id", current_user["id"]).order("created_at", desc=True).limit(3).execute()
         
         memory_context = ""
         if memory_response.data:
@@ -134,9 +134,9 @@ async def get_messages(
     """Get messages for a specific thread"""
     try:
         # Verify thread ownership
-        thread_check = supabase.table("threads").select("id").eq("id", thread_id).eq("user_id", current_user.id).single()
+        thread_check = supabase.table("threads").select("id").eq("id", thread_id).eq("user_id", current_user["id"]).execute()
         
-        if not thread_check.data:
+        if not thread_check.data or len(thread_check.data) == 0:
             raise HTTPException(status_code=404, detail="Thread not found")
         
         # Get messages
@@ -158,15 +158,15 @@ async def delete_message(
     """Delete a specific message"""
     try:
         # Verify thread ownership
-        thread_check = supabase.table("threads").select("id").eq("id", thread_id).eq("user_id", current_user.id).single()
+        thread_check = supabase.table("threads").select("id").eq("id", thread_id).eq("user_id", current_user["id"]).execute()
         
-        if not thread_check.data:
+        if not thread_check.data or len(thread_check.data) == 0:
             raise HTTPException(status_code=404, detail="Thread not found")
         
         # Verify message exists in thread
-        message_check = supabase.table("messages").select("id").eq("id", message_id).eq("thread_id", thread_id).single()
+        message_check = supabase.table("messages").select("id").eq("id", message_id).eq("thread_id", thread_id).execute()
         
-        if not message_check.data:
+        if not message_check.data or len(message_check.data) == 0:
             raise HTTPException(status_code=404, detail="Message not found")
         
         # Delete message
@@ -187,9 +187,9 @@ async def summarize_conversation(
     """Summarize conversation for memory storage"""
     try:
         # Verify thread ownership
-        thread_check = supabase.table("threads").select("id").eq("id", thread_id).eq("user_id", current_user.id).single()
+        thread_check = supabase.table("threads").select("id").eq("id", thread_id).eq("user_id", current_user["id"]).execute()
         
-        if not thread_check.data:
+        if not thread_check.data or len(thread_check.data) == 0:
             raise HTTPException(status_code=404, detail="Thread not found")
         
         # Get all messages from thread
@@ -207,7 +207,7 @@ async def summarize_conversation(
         if summary:
             # Save to memory
             memory_data = {
-                "user_id": current_user.id,
+                "user_id": current_user["id"],
                 "summary": summary,
                 "context": f"Thread: {thread_id}",
                 "importance_score": 5  # Default importance
