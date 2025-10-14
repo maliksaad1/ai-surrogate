@@ -228,19 +228,17 @@ export default function ChatScreen({ route, navigation }: Props) {
         return;
       }
 
-      // Send audio to backend for transcription
+      // Send audio to backend for transcription and AI response
       const formData = new FormData();
-      formData.append('audio', {
+      formData.append('file', {
         uri: result,
         type: 'audio/m4a',
         name: 'recording.m4a',
       } as any);
-      if (threadId) {
-        formData.append('thread_id', threadId);
-      }
-      formData.append('user_id', session.user.id);
+      formData.append('thread_id', threadId || '');
+      formData.append('voice_response', 'true');
 
-      const response = await fetch(`${API_BASE_URL}/voice`, {
+      const response = await fetch(`${API_BASE_URL}/voice/process`, {
         method: 'POST',
         body: formData,
         headers: {
