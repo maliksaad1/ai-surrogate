@@ -36,7 +36,7 @@ async def transcribe_audio(
             # Process voice message
             result = await voice_service.process_voice_message(
                 audio_file_path=temp_path,
-                user_id=current_user.id,
+                user_id=current_user["id"],
                 thread_id=thread_id
             )
             
@@ -94,8 +94,8 @@ async def process_voice_message(
     """Process complete voice message flow: transcribe → AI response → TTS"""
     try:
         # Validate thread ownership
-        thread_check = supabase.table("threads").select("id").eq("id", thread_id).eq("user_id", current_user.id).single()
-        if not thread_check.data:
+        thread_check = supabase.table("threads").select("id").eq("id", thread_id).eq("user_id", current_user["id"]).execute()
+        if not thread_check.data or len(thread_check.data) == 0:
             raise HTTPException(status_code=404, detail="Thread not found")
         
         # Create temporary file
@@ -111,7 +111,7 @@ async def process_voice_message(
             # Process voice message
             voice_result = await voice_service.process_voice_message(
                 audio_file_path=temp_path,
-                user_id=current_user.id,
+                user_id=current_user["id"],
                 thread_id=thread_id
             )
             
