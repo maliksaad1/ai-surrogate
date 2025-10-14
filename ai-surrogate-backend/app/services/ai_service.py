@@ -20,11 +20,23 @@ except Exception as e:
 class AIService:
     def __init__(self):
         try:
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
-            self.temperature = DEFAULT_MODEL_TEMPERATURE
-            self.configured = True
+            print(f"Initializing AI Service...")
+            print(f"GEMINI_API_KEY present: {bool(GEMINI_API_KEY)}")
+            print(f"GEMINI_API_KEY length: {len(GEMINI_API_KEY) if GEMINI_API_KEY else 0}")
+            
+            if GEMINI_API_KEY and GEMINI_API_KEY != "your-gemini-api-key-here" and len(GEMINI_API_KEY) > 20:
+                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                self.temperature = DEFAULT_MODEL_TEMPERATURE
+                self.configured = True
+                print(f"✓ AI Service initialized successfully with Gemini 1.5 Flash")
+            else:
+                print(f"⚠ AI Service initializing in fallback mode - API key invalid or missing")
+                self.model = None
+                self.configured = False
         except Exception as e:
-            print(f"Warning: AI model initialization failed: {e}")
+            print(f"❌ Warning: AI model initialization failed: {e}")
+            import traceback
+            traceback.print_exc()
             self.model = None
             self.configured = False
 
