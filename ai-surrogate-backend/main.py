@@ -104,6 +104,43 @@ async def debug_ai():
     
     return diagnostic
 
+@app.get("/list-models")
+async def list_models():
+    """List available Gemini models"""
+    import os
+    import google.generativeai as genai
+    
+    try:
+        api_key = os.getenv("GEMINI_API_KEY")
+        
+        if not api_key:
+            return {"error": "GEMINI_API_KEY not set"}
+        
+        # Configure
+        genai.configure(api_key=api_key)
+        
+        # List all available models
+        models = []
+        for m in genai.list_models():
+            models.append({
+                "name": m.name,
+                "display_name": m.display_name,
+                "description": m.description[:100] if m.description else "",
+                "supported_methods": m.supported_generation_methods
+            })
+        
+        return {
+            "status": "success",
+            "models": models
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 @app.get("/test-gemini-direct")
 async def test_gemini_direct():
     """Direct Gemini API test"""
