@@ -85,6 +85,25 @@ async def health_check():
         "fully_configured": all_configured
     }
 
+@app.get("/debug-ai")
+async def debug_ai():
+    """Detailed AI service diagnostic"""
+    import os
+    from app.services.ai_service import ai_service
+    
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    
+    diagnostic = {
+        "gemini_key_present": bool(gemini_key),
+        "gemini_key_length": len(gemini_key) if gemini_key else 0,
+        "gemini_key_first_10": gemini_key[:10] if gemini_key else "None",
+        "gemini_key_is_placeholder": gemini_key == "your-gemini-api-key-here" if gemini_key else False,
+        "ai_service_configured": ai_service.configured if hasattr(ai_service, 'configured') else False,
+        "ai_service_has_model": bool(ai_service.model) if hasattr(ai_service, 'model') else False,
+    }
+    
+    return diagnostic
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(
