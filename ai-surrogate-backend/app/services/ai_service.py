@@ -9,9 +9,13 @@ from app.core.config import GEMINI_API_KEY, DEFAULT_MODEL_TEMPERATURE, MAX_RESPO
 
 # Configure Gemini AI with error handling
 try:
-    genai.configure(api_key=GEMINI_API_KEY)
+    if GEMINI_API_KEY and GEMINI_API_KEY != "your-gemini-api-key-here":
+        genai.configure(api_key=GEMINI_API_KEY)
+        print(f"✓ Gemini AI configured successfully")
+    else:
+        print(f"⚠ Warning: GEMINI_API_KEY not set or invalid")
 except Exception as e:
-    print(f"Warning: Gemini AI configuration failed: {e}")
+    print(f"⚠ Warning: Gemini AI configuration failed: {e}")
 
 class AIService:
     def __init__(self):
@@ -43,11 +47,48 @@ class AIService:
         try:
             # Check if AI is properly configured
             if not self.configured or not self.model:
-                return {
-                    "content": f"Hello! Thanks for your message: '{message}'. I'm your AI companion and I'm here to help, though I'm currently running in basic mode.",
-                    "emotion": "friendly",
-                    "timestamp": datetime.utcnow().isoformat()
-                }
+                # Provide intelligent fallback responses
+                message_lower = message.lower()
+                
+                # Greeting responses
+                if any(word in message_lower for word in ["hello", "hi", "hey", "greetings"]):
+                    return {
+                        "content": "Hello! I'm your AI Surrogate companion. I'm here to chat, help you plan your day, answer questions, and provide support. How can I assist you today?",
+                        "emotion": "friendly",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                
+                # Help/capability questions
+                elif any(word in message_lower for word in ["what can you", "help me", "what do you do", "capabilities"]):
+                    return {
+                        "content": "I'm your AI companion! I can help you with:\n\n• Casual conversation and emotional support\n• Scheduling and time management\n• Answering questions and providing information\n• Remembering important details about our conversations\n• Planning your day\n\nWhat would you like to talk about?",
+                        "emotion": "helpful",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                
+                # How are you questions
+                elif any(word in message_lower for word in ["how are you", "how's it going", "how do you feel"]):
+                    return {
+                        "content": "I'm doing well, thank you for asking! I'm here and ready to help you with whatever you need. How are you doing today?",
+                        "emotion": "friendly",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                
+                # Schedule/time related
+                elif any(word in message_lower for word in ["schedule", "plan", "today", "tomorrow", "calendar"]):
+                    return {
+                        "content": f"I'd be happy to help you with your schedule! You mentioned: '{message}'. While my full AI capabilities are being set up, I can still help you think through your planning. What specific scheduling help do you need?",
+                        "emotion": "helpful",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                
+                # Default friendly response
+                else:
+                    return {
+                        "content": f"I hear you! You said: '{message}'. I'm your AI companion and I'm here to help. While my full AI capabilities are being configured, I can still chat with you! What would you like to talk about?",
+                        "emotion": "friendly",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
 
             # Build context prompt
             system_prompt = """You are an AI Surrogate - a compassionate, intelligent companion designed to provide emotional support, engaging conversation, and helpful assistance. 

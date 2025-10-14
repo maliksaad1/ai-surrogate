@@ -67,7 +67,23 @@ async def test_ai():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "message": "API is running"}
+    """Health check with configuration status"""
+    import os
+    
+    config_status = {
+        "supabase_url": "set" if os.getenv("SUPABASE_URL") else "missing",
+        "supabase_anon_key": "set" if os.getenv("SUPABASE_ANON_KEY") else "missing",
+        "gemini_api_key": "set" if os.getenv("GEMINI_API_KEY") else "missing",
+    }
+    
+    all_configured = all(status == "set" for status in config_status.values())
+    
+    return {
+        "status": "healthy",
+        "message": "API is running",
+        "configuration": config_status,
+        "fully_configured": all_configured
+    }
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
