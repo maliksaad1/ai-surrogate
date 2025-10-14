@@ -104,6 +104,39 @@ async def debug_ai():
     
     return diagnostic
 
+@app.get("/test-gemini-direct")
+async def test_gemini_direct():
+    """Direct Gemini API test"""
+    import os
+    import google.generativeai as genai
+    
+    try:
+        api_key = os.getenv("GEMINI_API_KEY")
+        
+        if not api_key:
+            return {"error": "GEMINI_API_KEY not set"}
+        
+        # Configure and test
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Simple test prompt
+        response = model.generate_content("Say hello in one sentence")
+        
+        return {
+            "status": "success",
+            "response": response.text,
+            "api_key_length": len(api_key),
+            "model": "gemini-1.5-flash"
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(
