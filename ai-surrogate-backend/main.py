@@ -155,7 +155,7 @@ async def test_gemini_direct():
         
         # Configure and test
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-flash-latest')
         
         # Simple test prompt
         response = model.generate_content("Say hello in one sentence")
@@ -164,7 +164,7 @@ async def test_gemini_direct():
             "status": "success",
             "response": response.text,
             "api_key_length": len(api_key),
-            "model": "gemini-pro"
+            "model": "gemini-flash-latest"
         }
     except Exception as e:
         import traceback
