@@ -47,10 +47,14 @@ class AIService:
             if not GEMINI_API_KEY or GEMINI_API_KEY == "your-gemini-api-key-here":
                 return "Hello! I'm your AI Surrogate companion. I'm currently setting up my AI capabilities. How can I help you today?"
             
+            print(f"Generating chat response for: {message[:50]}...")
             result = await self.generate_response(message, context, memory)
+            print(f"Got response from generate_response: {result['content'][:50]}...")
             return result["content"]
         except Exception as e:
-            print(f"Error generating chat response: {e}")
+            print(f"❌ Error in generate_chat_response: {e}")
+            import traceback
+            traceback.print_exc()
             # Provide a helpful fallback response
             return f"I understand you said: '{message}'. I'm having some technical difficulties right now, but I'm here to listen and help however I can!"
 
@@ -158,7 +162,12 @@ Guidelines:
                 raise Exception("No response generated")
 
         except Exception as e:
-            print(f"Error generating AI response: {e}")
+            print(f"❌ Error generating AI response: {e}")
+            import traceback
+            print(f"Full traceback:")
+            traceback.print_exc()
+            print(f"Model configured: {self.configured}")
+            print(f"Model object: {self.model}")
             return {
                 "content": "I'm sorry, I'm having trouble processing your message right now. Could you please try again?",
                 "emotion": "neutral",
