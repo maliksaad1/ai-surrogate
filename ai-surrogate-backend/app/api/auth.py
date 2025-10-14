@@ -20,7 +20,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         token = credentials.credentials
         user_response = supabase.auth.get_user(token)
         if user_response.user:
-            return user_response.user
+            # Convert User object to dict
+            return {
+                "id": user_response.user.id,
+                "email": user_response.user.email,
+                "aud": getattr(user_response.user, 'aud', None),
+                "role": getattr(user_response.user, 'role', None),
+                "created_at": getattr(user_response.user, 'created_at', None),
+            }
         raise HTTPException(status_code=401, detail="Invalid token")
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -158,15 +165,15 @@ async def logout(current_user: dict = Depends(get_current_user)):
 async def get_current_user_profile(current_user: dict = Depends(get_current_user)):
     """Get current user profile"""
     try:
-        user_profile = supabase.table("users").select("*").eq("id", current_user.id).single()
+        user_profile = supabase.table("users").select("*").eq("id", current_user["id"]).execute()
         
-        if user_profile.data:
-            return user_profile.data
+        if user_profile.data and len(user_profile.data) > 0:
+            return user_profile.data[0]
         else:
             # Create profile if it doesn't exist
             user_data = {
-                "id": current_user.id,
-                "email": current_user.email,
+                "id": current_user["id"],
+                "email": current_user["email"],
                 "preferences": {}
             }
             
@@ -184,7 +191,7 @@ async def update_user_profile(user_data: dict, current_user: dict = Depends(get_
         allowed_fields = ["name", "preferences"]
         update_data = {k: v for k, v in user_data.items() if k in allowed_fields}
         
-        response = supabase.table("users").update(update_data).eq("id", current_user.id).execute()
+        response = supabase.table("users").update(update_data).eq("id", current_user["id"]).execute()
         
         if response.data:
             return response.data[0]
