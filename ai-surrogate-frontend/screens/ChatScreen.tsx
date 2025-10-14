@@ -153,9 +153,15 @@ export default function ChatScreen({ route, navigation }: Props) {
     setIsTyping(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!user) return;
+      if (!session || !session.user) {
+        Alert.alert('Error', 'Please log in to send messages');
+        setIsTyping(false);
+        return;
+      }
+
+      const user = session.user;
 
       // Save user message
       const { error: messageError } = await supabase
@@ -170,11 +176,12 @@ export default function ChatScreen({ route, navigation }: Props) {
 
       if (messageError) throw messageError;
 
-      // Send to backend API for AI response
+      // Send to backend API for AI response with auth token
       const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           thread_id: threadId,
@@ -184,13 +191,14 @@ export default function ChatScreen({ route, navigation }: Props) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get AI response');
+        const errorData = await response.json().catch(() => ({ detail: 'Failed to get AI response' }));
+        throw new Error(errorData.detail || 'Failed to get AI response');
       }
 
       // AI response will be handled by real-time subscription
     } catch (error: any) {
       console.error('Error sending message:', error);
-      Alert.alert('Error', 'Failed to send message');
+      Alert.alert('Error', error.message || 'Failed to send message');
       setIsTyping(false);
     }
   };
@@ -213,6 +221,13 @@ export default function ChatScreen({ route, navigation }: Props) {
       setIsRecording(false);
       setRecordingPath('');
 
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session || !session.user) {
+        Alert.alert('Error', 'Please log in to send voice messages');
+        return;
+      }
+
       // Send audio to backend for transcription
       const formData = new FormData();
       formData.append('audio', {
@@ -223,28 +238,25 @@ export default function ChatScreen({ route, navigation }: Props) {
       if (threadId) {
         formData.append('thread_id', threadId);
       }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        formData.append('user_id', user.id);
-      }
+      formData.append('user_id', session.user.id);
 
       const response = await fetch(`${API_BASE_URL}/voice`, {
         method: 'POST',
         body: formData,
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to process voice message');
+        const errorData = await response.json().catch(() => ({ detail: 'Failed to process voice message' }));
+        throw new Error(errorData.detail || 'Failed to process voice message');
       }
 
       setIsTyping(true);
     } catch (error: any) {
       console.error('Error stopping recording:', error);
-      Alert.alert('Error', 'Failed to process voice message');
+      Alert.alert('Error', error.message || 'Failed to process voice message');
     }
   };
 
