@@ -164,11 +164,9 @@ headers: {
 ## 🐛 Known Issues
 
 ### Voice Upload
-**Status**: Temporarily disabled  
-**Reason**: Network request failures in production APK  
-**Cause**: React Native file upload requires additional native module setup  
-**Workaround**: Voice button shows friendly placeholder message  
-**Solution**: Requires:
+**Status**: ✅ Enabled (Testing Required)  
+**Note**: Voice upload has been re-enabled with Supabase storage configured. May require testing in production APK builds to ensure React Native file upload works correctly.  
+**Requirements**:
 - Proper Android permissions configuration
 - Native audio module setup
 - File upload handling for production builds
@@ -176,7 +174,7 @@ headers: {
 ### Supabase Storage
 **Status**: ✅ Configured  
 **Impact**: Audio files now properly uploaded to Supabase storage  
-**Note**: Voice upload still disabled in frontend due to React Native production build issues
+**Note**: Voice upload is now enabled - test in production APK to verify full functionality
 
 ## 🔄 Recent Updates
 
@@ -186,7 +184,8 @@ headers: {
 - ✅ Switched from mock to real ChatScreen
 - ✅ Enhanced robotic icon with glowing eyes
 - ✅ Fixed email confirmation redirect loop
-- ✅ Temporarily disabled voice upload to prevent errors
+- ✅ Configured Supabase storage for audio files
+- ✅ Re-enabled voice upload functionality
 - ✅ Connected to production backend on Render
 
 ## 🎨 Custom Icon

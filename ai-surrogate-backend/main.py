@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import route modules
-from app.api import auth, chat, voice, threads, memory
+from app.api import auth, chat, threads, memory
+# from app.api import voice  # Voice features temporarily disabled
 
 # Create FastAPI instance
 app = FastAPI(
@@ -30,7 +31,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/auth", tags=["authentication"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
-app.include_router(voice.router, prefix="/voice", tags=["voice"])
+# app.include_router(voice.router, prefix="/voice", tags=["voice"])  # Voice temporarily disabled
 app.include_router(threads.router, prefix="/threads", tags=["threads"])
 app.include_router(memory.router, prefix="/memory", tags=["memory"])
 

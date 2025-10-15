@@ -8,8 +8,6 @@ FastAPI backend server for AI Surrogate app with custom multi-agent AI system, G
 
 - 🤖 Custom multi-agent AI orchestrator (ChatAgent, EmotionAgent, MemoryAgent, SchedulerAgent, DocsAgent)
 - 🧠 Google Gemini Flash Latest integration
-- 🎤 Speech-to-text processing (Whisper disabled - using placeholder)
-- 🔊 gTTS text-to-speech with fallback handling
 - 📊 Memory and emotion tracking
 - 🔐 Supabase authentication with JWT
 - 🚀 FastAPI with async support
@@ -82,13 +80,6 @@ Required environment variables:
 
 **Note**: User messages are saved by frontend before API call to avoid duplicates.
 
-### Voice
-- `POST /voice/transcribe` - Transcribe audio to text (requires Bearer token)
-- `POST /voice/speak` - Convert text to speech (requires Bearer token)
-- `POST /voice/process` - Full voice conversation flow (requires Bearer token, file upload)
-
-**Note**: Voice upload requires `multipart/form-data` with field name `file`.
-
 ### Memory
 - `GET /memory/` - Get user memories (requires Bearer token)
 - `POST /memory/analyze` - Analyze conversation patterns (requires Bearer token)
@@ -103,8 +94,6 @@ Required environment variables:
   - `SchedulerAgent` - Task and schedule management
   - `DocsAgent` - Documentation and knowledge retrieval
 - **Supabase** - PostgreSQL database, authentication (JWT), and real-time subscriptions
-- **Whisper STT** - Speech-to-text (currently disabled due to heavy dependencies)
-- **gTTS** - Text-to-speech synthesis with fallback handling
 - **Gemini Flash Latest** - AI language model (gemini-flash-latest)
 - **Render** - Cloud deployment platform
 
@@ -115,12 +104,10 @@ Required environment variables:
 2. **Authentication** - Fixed `get_current_user()` to return dict instead of User object
 3. **Supabase Queries** - Changed `.single()` to `.execute()` for proper data access
 4. **Duplicate Messages** - Removed user message insertion from backend (frontend handles it)
-5. **Voice Service** - Added fallback handling for Supabase storage failures
-6. **Error Handling** - Improved error messages and logging throughout
+5. **Error Handling** - Improved error messages and logging throughout
 
 ### ⚠️ Known Limitations:
-1. **Whisper STT** - Disabled due to large ML model dependencies (uses placeholder)
-2. **Voice Upload** - Requires additional native module setup for production APK
+None currently - text chat fully functional!
 
 ## Authentication
 

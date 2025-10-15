@@ -1,11 +1,21 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 import json
 import asyncio
 from datetime import datetime
 import google.generativeai as genai
+from enum import Enum
 
 from app.core.config import GEMINI_API_KEY
 from app.services.ai_service import ai_service
+
+class AgentStatus(Enum):
+    """Agent execution status for visual feedback"""
+    IDLE = "idle"
+    ANALYZING = "analyzing"
+    PROCESSING = "processing"
+    COMPLETING = "completing"
+    COMPLETE = "complete"
+    ERROR = "error"
 
 class AgentType:
     CHAT = "chat"
@@ -16,8 +26,8 @@ class AgentType:
 
 class SimpleAgentOrchestrator:
     """
-    Lightweight agent orchestrator without LangChain dependencies.
-    Routes messages to appropriate specialized agents based on content analysis.
+    Enhanced agent orchestrator with visual status tracking and MCP-like concepts.
+    Shows which agent is working and provides real-time execution feedback.
     """
     
     def __init__(self):
@@ -28,6 +38,8 @@ class SimpleAgentOrchestrator:
             AgentType.SCHEDULER: SchedulerAgent(),
             AgentType.DOCS: DocsAgent(),
         }
+        self.status_callback = None  # For real-time status updates
+        self.execution_log = []  # Track agent execution history
     
     async def process_message(
         self, 
@@ -38,13 +50,34 @@ class SimpleAgentOrchestrator:
         memory: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Process user message by routing to appropriate agents
+        Process user message with enhanced visibility and MCP-like tool calling
         """
+        execution_trace = []  # Track all agent executions
+        start_time = datetime.utcnow()
+        
         try:
             # Step 1: Analyze message intent and route to primary agent
+            self._log_status("orchestrator", AgentStatus.ANALYZING, "Routing message to appropriate agent")
+            execution_trace.append({"step": "routing", "status": "started", "time": datetime.utcnow().isoformat()})
+            
             primary_agent = await self._route_message(message)
             
-            # Step 2: Get primary response
+            execution_trace.append({
+                "step": "routing", 
+                "status": "complete", 
+                "agent_selected": primary_agent,
+                "time": datetime.utcnow().isoformat()
+            })
+            
+            # Step 2: Execute primary agent with status tracking
+            self._log_status(primary_agent, AgentStatus.PROCESSING, f"{primary_agent.title()} agent is processing your request")
+            execution_trace.append({
+                "step": "primary_agent", 
+                "agent": primary_agent,
+                "status": "processing",
+                "time": datetime.utcnow().isoformat()
+            })
+            
             primary_response = await self.agents[primary_agent].process(
                 message=message,
                 context=context,
@@ -53,40 +86,88 @@ class SimpleAgentOrchestrator:
                 thread_id=thread_id
             )
             
-            # Step 3: Analyze emotion in parallel
+            execution_trace.append({
+                "step": "primary_agent",
+                "agent": primary_agent,
+                "status": "complete",
+                "confidence": primary_response.get("confidence", 0.8),
+                "time": datetime.utcnow().isoformat()
+            })
+            
+            # Step 3: Parallel agent execution (MCP-like tool calling)
+            self._log_status("orchestrator", AgentStatus.PROCESSING, "Running emotion and memory agents")
+            
+            # Execute emotion and memory agents in parallel
             emotion_task = asyncio.create_task(
-                self.agents[AgentType.EMOTION].analyze_emotion(primary_response["content"])
+                self._execute_with_tracking(AgentType.EMOTION, "analyze_emotion", primary_response["content"])
             )
             
-            # Step 4: Check if memory update is needed
             memory_task = asyncio.create_task(
-                self.agents[AgentType.MEMORY].should_update_memory(message, primary_response["content"])
+                self._execute_with_tracking(
+                    AgentType.MEMORY, 
+                    "should_update_memory", 
+                    message, 
+                    primary_response["content"]
+                )
             )
             
             # Wait for parallel tasks
-            emotion, memory_update = await asyncio.gather(emotion_task, memory_task)
+            emotion_result, memory_result = await asyncio.gather(emotion_task, memory_task)
             
-            # Step 5: Update memory if needed
+            emotion = emotion_result["result"]
+            memory_update = memory_result["result"]
+            
+            execution_trace.extend([emotion_result["trace"], memory_result["trace"]])
+            
+            # Step 4: Update memory if needed
             if memory_update:
+                self._log_status(AgentType.MEMORY, AgentStatus.PROCESSING, "Updating memory")
+                execution_trace.append({
+                    "step": "memory_update",
+                    "status": "processing",
+                    "importance": memory_update.get("importance", 3),
+                    "time": datetime.utcnow().isoformat()
+                })
+                
                 await self.agents[AgentType.MEMORY].update_memory(
                     user_id=user_id,
                     conversation_summary=f"User: {message}\nAI: {primary_response['content']}",
                     importance_score=memory_update.get("importance", 3)
                 )
+                
+                execution_trace.append({
+                    "step": "memory_update",
+                    "status": "complete",
+                    "time": datetime.utcnow().isoformat()
+                })
             
+            # Calculate total processing time
+            end_time = datetime.utcnow()
+            total_time = (end_time - start_time).total_seconds()
+            
+            self._log_status("orchestrator", AgentStatus.COMPLETE, "Response generated successfully")
+            
+            # Return enhanced response with full execution trace
             return {
                 "response": primary_response["content"],
                 "emotion": emotion,
                 "agent_used": primary_agent,
+                "agent_display_name": self._get_agent_display_name(primary_agent),
+                "agent_icon": self._get_agent_icon(primary_agent),
                 "metadata": {
                     "memory_updated": bool(memory_update),
-                    "processing_time": primary_response.get("processing_time"),
-                    "confidence": primary_response.get("confidence", 0.8)
+                    "processing_time": total_time,
+                    "primary_agent_time": primary_response.get("processing_time"),
+                    "confidence": primary_response.get("confidence", 0.8),
+                    "execution_trace": execution_trace,
+                    "agents_involved": self._get_agents_involved(execution_trace)
                 }
             }
             
         except Exception as e:
             print(f"Error in agent orchestration: {e}")
+            self._log_status("orchestrator", AgentStatus.ERROR, f"Error: {str(e)}")
+            
             # Fallback to basic chat
             fallback_response = await self.agents[AgentType.CHAT].process(
                 message=message,
@@ -100,7 +181,12 @@ class SimpleAgentOrchestrator:
                 "response": fallback_response["content"],
                 "emotion": "neutral",
                 "agent_used": "fallback",
-                "metadata": {"error": str(e)}
+                "agent_display_name": "Fallback Agent",
+                "agent_icon": "⚠️",
+                "metadata": {
+                    "error": str(e),
+                    "execution_trace": execution_trace
+                }
             }
     
     async def _route_message(self, message: str) -> str:
@@ -143,6 +229,99 @@ class SimpleAgentOrchestrator:
         except Exception as e:
             print(f"Error in message routing: {e}")
             return AgentType.CHAT  # Default fallback
+    
+    async def _execute_with_tracking(self, agent_type: str, method_name: str, *args) -> Dict[str, Any]:
+        """Execute agent method with execution tracking"""
+        start_time = datetime.utcnow()
+        self._log_status(agent_type, AgentStatus.PROCESSING, f"Executing {method_name}")
+        
+        try:
+            agent = self.agents[agent_type]
+            method = getattr(agent, method_name)
+            result = await method(*args)
+            
+            end_time = datetime.utcnow()
+            execution_time = (end_time - start_time).total_seconds()
+            
+            self._log_status(agent_type, AgentStatus.COMPLETE, f"{method_name} complete")
+            
+            return {
+                "result": result,
+                "trace": {
+                    "agent": agent_type,
+                    "method": method_name,
+                    "status": "complete",
+                    "execution_time": execution_time,
+                    "start_time": start_time.isoformat(),
+                    "end_time": end_time.isoformat()
+                }
+            }
+        except Exception as e:
+            self._log_status(agent_type, AgentStatus.ERROR, f"Error in {method_name}: {str(e)}")
+            return {
+                "result": None,
+                "trace": {
+                    "agent": agent_type,
+                    "method": method_name,
+                    "status": "error",
+                    "error": str(e),
+                    "time": datetime.utcnow().isoformat()
+                }
+            }
+    
+    def _log_status(self, agent: str, status: AgentStatus, message: str):
+        """Log agent status for tracking and debugging"""
+        log_entry = {
+            "agent": agent,
+            "status": status.value,
+            "message": message,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        self.execution_log.append(log_entry)
+        print(f"[{agent.upper()}] {status.value}: {message}")
+        
+        # Call status callback if registered (for real-time updates)
+        if self.status_callback:
+            self.status_callback(log_entry)
+    
+    def _get_agent_display_name(self, agent_type: str) -> str:
+        """Get human-readable agent name"""
+        names = {
+            AgentType.CHAT: "Chat Assistant",
+            AgentType.EMOTION: "Emotion Analyzer",
+            AgentType.MEMORY: "Memory Manager",
+            AgentType.SCHEDULER: "Schedule Assistant",
+            AgentType.DOCS: "Knowledge Assistant"
+        }
+        return names.get(agent_type, "Unknown Agent")
+    
+    def _get_agent_icon(self, agent_type: str) -> str:
+        """Get emoji icon for agent type"""
+        icons = {
+            AgentType.CHAT: "💬",
+            AgentType.EMOTION: "😊",
+            AgentType.MEMORY: "🧠",
+            AgentType.SCHEDULER: "📅",
+            AgentType.DOCS: "📚"
+        }
+        return icons.get(agent_type, "🤖")
+    
+    def _get_agents_involved(self, execution_trace: List[Dict[str, Any]]) -> List[str]:
+        """Extract list of all agents involved in execution"""
+        agents = set()
+        for trace in execution_trace:
+            if "agent" in trace:
+                agents.add(trace["agent"])
+        return list(agents)
+    
+    def get_execution_log(self) -> List[Dict[str, Any]]:
+        """Get full execution log for debugging"""
+        return self.execution_log.copy()
+    
+    def clear_execution_log(self):
+        """Clear execution log"""
+        self.execution_log.clear()
 
 class BaseAgent:
     """Base class for all agents"""

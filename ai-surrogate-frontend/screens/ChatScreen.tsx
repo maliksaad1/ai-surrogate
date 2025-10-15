@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   SafeAreaView,
   Alert,
@@ -13,8 +11,6 @@ import {
 import { GiftedChat, IMessage, Bubble, InputToolbar, Send } from 'react-native-gifted-chat';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
-import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -32,23 +28,17 @@ interface Props {
   navigation: ChatScreenNavigationProp;
 }
 
-// Note: AudioRecorderPlayer initialization
-const audioRecorderPlayer = AudioRecorderPlayer;
-
 export default function ChatScreen({ route, navigation }: Props) {
   const { threadId } = route.params;
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingPath, setRecordingPath] = useState('');
-  const [isPlaying, setIsPlaying] = useState(false);
   const [thread, setThread] = useState<Thread | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [activeAgent, setActiveAgent] = useState<{name: string, icon: string} | null>(null);
 
   useEffect(() => {
     loadThread();
     loadMessages();
-    setupAudio();
 
     // Subscribe to real-time message updates
     const subscription = supabase
@@ -69,18 +59,6 @@ export default function ChatScreen({ route, navigation }: Props) {
       subscription.unsubscribe();
     };
   }, [threadId]);
-
-  const setupAudio = async () => {
-    try {
-      await Audio.requestPermissionsAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-    } catch (error) {
-      console.error('Error setting up audio:', error);
-    }
-  };
 
   const loadThread = async () => {
     try {
@@ -130,27 +108,51 @@ export default function ChatScreen({ route, navigation }: Props) {
 
   const handleNewMessage = (payload: any) => {
     const newMessage = payload.new;
+    
+    // Extract agent information from metadata if available
+    let agentInfo = null;
+    if (newMessage.metadata) {
+      try {
+        const metadata = typeof newMessage.metadata === 'string' 
+          ? JSON.parse(newMessage.metadata) 
+          : newMessage.metadata;
+        
+        if (metadata.agent_display_name && metadata.agent_icon) {
+          agentInfo = {
+            name: metadata.agent_display_name,
+            icon: metadata.agent_icon,
+            agent: metadata.primary_agent
+          };
+        }
+      } catch (e) {
+        console.error('Error parsing metadata:', e);
+      }
+    }
+    
     const formattedMessage = {
       _id: newMessage.id,
       text: newMessage.content,
       createdAt: new Date(newMessage.created_at),
       user: {
         _id: newMessage.role === 'user' ? 1 : 2,
-        name: newMessage.role === 'user' ? 'You' : 'AI Surrogate',
+        name: newMessage.role === 'user' ? 'You' : (agentInfo?.name || 'AI Surrogate'),
         avatar: newMessage.role === 'user' ? undefined : 'https://via.placeholder.com/40x40/00FFFF/FFFFFF?text=AI',
       },
       audio: newMessage.audio_url,
+      metadata: agentInfo,
     };
 
     setMessages((previousMessages) =>
       GiftedChat.append(previousMessages, [formattedMessage])
     );
     setIsTyping(false);
+    setActiveAgent(null);  // Clear active agent when response is received
   };
 
   const sendMessage = async (messages: IMessage[]) => {
     const message = messages[0];
     setIsTyping(true);
+    setActiveAgent({name: 'Analyzing', icon: '🔍'});  // Show analyzing status
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -158,6 +160,7 @@ export default function ChatScreen({ route, navigation }: Props) {
       if (!session || !session.user) {
         Alert.alert('Error', 'Please log in to send messages');
         setIsTyping(false);
+        setActiveAgent(null);
         return;
       }
 
@@ -175,6 +178,9 @@ export default function ChatScreen({ route, navigation }: Props) {
         ]);
 
       if (messageError) throw messageError;
+
+      // Update status to show processing
+      setActiveAgent({name: 'Processing', icon: '⚙️'});
 
       // Send to backend API for AI response with auth token
       const response = await fetch(`${API_BASE_URL}/chat`, {
@@ -194,99 +200,27 @@ export default function ChatScreen({ route, navigation }: Props) {
         const errorData = await response.json().catch(() => ({ detail: 'Failed to get AI response' }));
         throw new Error(errorData.detail || 'Failed to get AI response');
       }
+      
+      // Try to extract agent info from response
+      try {
+        const responseData = await response.json();
+        if (responseData.metadata) {
+          setActiveAgent({
+            name: responseData.metadata.agent_display_name || 'AI Assistant',
+            icon: responseData.metadata.agent_icon || '🤖'
+          });
+        }
+      } catch (e) {
+        // Response already consumed or not JSON
+        console.log('Could not parse response for agent info');
+      }
 
       // AI response will be handled by real-time subscription
     } catch (error: any) {
       console.error('Error sending message:', error);
       Alert.alert('Error', error.message || 'Failed to send message');
       setIsTyping(false);
-    }
-  };
-
-  const startRecording = async () => {
-    try {
-      const path = `recording_${Date.now()}.m4a`;
-      const result = await audioRecorderPlayer.startRecorder(path);
-      setRecordingPath(result);
-      setIsRecording(true);
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      Alert.alert('Error', 'Failed to start recording');
-    }
-  };
-
-  const stopRecording = async () => {
-    try {
-      const result = await audioRecorderPlayer.stopRecorder();
-      setIsRecording(false);
-      setRecordingPath('');
-
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session || !session.user) {
-        Alert.alert('Error', 'Please log in to send voice messages');
-        return;
-      }
-
-      console.log('Recording stopped, file path:', result);
-
-      // For now, just show a message that voice was received
-      // Full voice processing requires additional setup
-      Alert.alert(
-        'Voice Received',
-        'Voice message received! Full voice processing is being set up. For now, please use text chat.',
-        [{ text: 'OK' }]
-      );
-      
-      /* Temporarily disabled - requires more setup
-      // Send audio to backend for transcription and AI response
-      const formData = new FormData();
-      formData.append('file', {
-        uri: result,
-        type: 'audio/m4a',
-        name: 'recording.m4a',
-      } as any);
-      formData.append('thread_id', threadId || '');
-      formData.append('voice_response', 'true');
-
-      const response = await fetch(`${API_BASE_URL}/voice/process`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Failed to process voice message' }));
-        throw new Error(errorData.detail || 'Failed to process voice message');
-      }
-
-      setIsTyping(true);
-      */
-    } catch (error: any) {
-      console.error('Error with voice recording:', error);
-      Alert.alert('Error', error.message || 'Failed to process voice message');
-    }
-  };
-
-  const playAudio = async (audioUrl: string) => {
-    try {
-      if (isPlaying) {
-        await audioRecorderPlayer.stopPlayer();
-        setIsPlaying(false);
-      } else {
-        await audioRecorderPlayer.startPlayer(audioUrl);
-        setIsPlaying(true);
-        
-        audioRecorderPlayer.addPlayBackListener((e: any) => {
-          if (e.currentPosition === e.duration) {
-            setIsPlaying(false);
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error playing audio:', error);
+      setActiveAgent(null);
     }
   };
 
@@ -341,30 +275,28 @@ export default function ChatScreen({ route, navigation }: Props) {
     </Send>
   );
 
-  const renderAccessory = () => (
-    <View style={styles.accessory}>
-      <TouchableOpacity
-        style={[styles.micButton, isRecording && styles.micButtonActive]}
-        onPressIn={startRecording}
-        onPressOut={stopRecording}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={isRecording ? [Colors.error, '#FF6B6B'] : [Colors.primary, Colors.secondary]}
-          style={styles.micGradient}
-        >
-          <Ionicons 
-            name={isRecording ? "stop" : "mic"} 
-            size={24} 
-            color={Colors.background} 
-          />
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
+      {/* Agent Status Indicator */}
+      {activeAgent && (
+        <View style={styles.agentStatus}>
+          <LinearGradient
+            colors={[Colors.primary, Colors.secondary]}
+            style={styles.agentStatusGradient}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 0}}
+          >
+            <Text style={styles.agentIcon}>{activeAgent.icon}</Text>
+            <Text style={styles.agentName}>{activeAgent.name} is working...</Text>
+            <View style={styles.loadingDots}>
+              <View style={[styles.dot, styles.dot1]} />
+              <View style={[styles.dot, styles.dot2]} />
+              <View style={[styles.dot, styles.dot3]} />
+            </View>
+          </LinearGradient>
+        </View>
+      )}
+      
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -377,11 +309,9 @@ export default function ChatScreen({ route, navigation }: Props) {
           renderBubble={renderBubble}
           renderInputToolbar={renderInputToolbar}
           renderSend={renderSend}
-          renderAccessory={renderAccessory}
           isTyping={isTyping}
           messagesContainerStyle={styles.messagesContainer}
-          // textInputStyle={styles.textInput}
-          placeholder="Type a message or hold mic to record..."
+          placeholder="Type a message..."
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -435,29 +365,48 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.primary + '30',
   },
-  accessory: {
-    height: 60,
-    justifyContent: 'center',
+  agentStatus: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+  },
+  agentStatusGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-  },
-  micButton: {
-    width: 50,
-    height: 50,
-  },
-  micButtonActive: {
-    transform: [{ scale: 1.1 }],
-  },
-  micGradient: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
     justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  agentIcon: {
+    fontSize: 20,
+    marginRight: Spacing.xs,
+  },
+  agentName: {
+    color: Colors.background,
+    fontSize: Fonts.sizes.sm,
+    fontWeight: '600',
+    marginRight: Spacing.xs,
+  },
+  loadingDots: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.background,
+    marginHorizontal: 2,
+  },
+  dot1: {
+    opacity: 0.4,
+  },
+  dot2: {
+    opacity: 0.7,
+  },
+  dot3: {
+    opacity: 1,
   },
 });

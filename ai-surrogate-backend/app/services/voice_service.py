@@ -1,39 +1,47 @@
-# import whisper  # Temporarily disabled for deployment
+import whisper
 from gtts import gTTS
 import tempfile
 import os
 import asyncio
 from typing import Optional
 import aiofiles
-# from mutagen import File as MutagenFile  # Temporarily disabled
 
 from app.core.config import ALLOWED_AUDIO_TYPES, MAX_FILE_SIZE
 from app.core.database import supabase
 
 class VoiceService:
     def __init__(self):
-        # Whisper model loading temporarily disabled for deployment
-        # self.whisper_model = whisper.load_model("base")
-        pass
+        # Load Whisper model
+        try:
+            print("Loading Whisper model...")
+            self.whisper_model = whisper.load_model("base")
+            print("✓ Whisper model loaded successfully")
+        except Exception as e:
+            print(f"⚠ Warning: Failed to load Whisper model: {e}")
+            self.whisper_model = None
 
     async def transcribe_audio(self, audio_file_path: str) -> str:
-        """Transcribe audio file to text using Whisper (temporarily disabled)"""
+        """Transcribe audio file to text using Whisper"""
         try:
-            # Temporary placeholder - return indicating voice was received
-            # TODO: Re-enable Whisper after deployment dependencies are resolved
-            return "[Voice message received - STT temporarily disabled for deployment]"
+            if self.whisper_model is None:
+                print("Whisper model not loaded, using fallback")
+                return "[Voice message received - STT unavailable]"
             
-            # Original Whisper code (commented out for deployment):
-            # result = await asyncio.to_thread(
-            #     self.whisper_model.transcribe,
-            #     audio_file_path,
-            #     language="en"
-            # )
-            # return result["text"].strip()
+            print(f"Transcribing audio: {audio_file_path}")
+            result = await asyncio.to_thread(
+                self.whisper_model.transcribe,
+                audio_file_path,
+                language="en"
+            )
+            
+            transcribed_text = result["text"].strip()
+            print(f"✓ Transcription complete: {transcribed_text[:100]}...")
+            return transcribed_text
             
         except Exception as e:
             print(f"Error transcribing audio: {e}")
-            raise Exception("Failed to transcribe audio")
+            # Fallback to placeholder instead of failing
+            return "[Voice transcription failed]"
 
     async def text_to_speech(self, text: str, language: str = "en") -> str:
         """Convert text to speech using gTTS and upload to Supabase storage"""

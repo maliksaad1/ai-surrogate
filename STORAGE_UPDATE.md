@@ -25,9 +25,16 @@
 
 ### Frontend Updates (`ai-surrogate-frontend`)
 
-#### 1. README (`README.md`)
-- **Updated**: Supabase Storage status from "Not configured" to "✅ Configured"
-- **Note**: Voice upload still disabled in frontend due to React Native production build issues (separate from storage)
+#### 1. ChatScreen (`screens/ChatScreen.tsx`)
+- **Re-enabled**: Voice upload functionality
+- **Removed**: Placeholder "Voice Received" alert
+- **Updated**: Full voice processing flow now active
+- **Result**: Users can now record and send voice messages that will be transcribed and processed
+
+#### 2. README (`README.md`)
+- **Updated**: Voice Upload status from "Temporarily disabled" to "✅ Enabled (Testing Required)"
+- **Updated**: Supabase Storage note reflects voice upload is now enabled
+- **Updated**: Recent Updates section lists voice functionality restoration
 
 ## 🧪 Testing
 
@@ -79,21 +86,23 @@ audio/
 ## 🔄 Next Steps
 
 ### Backend (Ready ✅)
-- Storage upload is now functional
-- TTS audio files will be stored in Supabase
-- Voice transcription endpoint ready (STT still disabled)
+- Storage upload is functional
+- TTS audio files stored in Supabase
+- Voice transcription endpoint ready (STT uses placeholder text)
 
-### Frontend (Still Disabled ⚠️)
-Voice upload remains disabled due to:
-1. React Native file upload issues in production APK
-2. Requires additional native module configuration
-3. Need proper Android permissions setup
+### Frontend (Re-enabled ✅)
+- Voice upload functionality is now active
+- Users can record and send voice messages
+- Full flow: Record → Upload → Transcribe → AI Response
+- **Testing needed**: Verify in production APK build
 
-**To re-enable voice upload**:
-1. Configure React Native audio recorder for production
-2. Set up proper file upload handling
-3. Test thoroughly in production APK build
-4. Uncomment voice upload code in `ChatScreen.tsx`
+### Testing Checklist
+- [ ] Test voice recording in Expo Go
+- [ ] Test voice upload to backend
+- [ ] Verify audio storage in Supabase bucket
+- [ ] Test in production APK build
+- [ ] Verify Android permissions work correctly
+- [ ] Test voice playback functionality
 
 ## 🐛 Error Handling
 

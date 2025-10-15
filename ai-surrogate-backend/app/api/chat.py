@@ -66,6 +66,11 @@ async def send_message(
                 ai_response = ai_result["response"]
                 emotion = ai_result["emotion"]
                 metadata = ai_result["metadata"]
+                
+                # Add agent visibility information
+                metadata["agent_display_name"] = ai_result.get("agent_display_name", "AI Assistant")
+                metadata["agent_icon"] = ai_result.get("agent_icon", "🤖")
+                metadata["primary_agent"] = ai_result.get("agent_used", "chat")
             
         except Exception as ai_error:
             print(f"Agent orchestrator error: {ai_error}")
@@ -218,5 +223,42 @@ async def summarize_conversation(
         
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/agents/status")
+async def get_agent_status(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get current agent execution status and logs"""
+    try:
+        execution_log = agent_orchestrator.get_execution_log()
+        
+        # Get last 20 log entries
+        recent_logs = execution_log[-20:] if len(execution_log) > 20 else execution_log
+        
+        return {
+            "total_executions": len(execution_log),
+            "recent_logs": recent_logs,
+            "available_agents": [
+                {
+                    "type": agent_type,
+                    "display_name": agent_orchestrator._get_agent_display_name(agent_type),
+                    "icon": agent_orchestrator._get_agent_icon(agent_type)
+                }
+                for agent_type in ["chat", "emotion", "memory", "scheduler", "docs"]
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/agents/clear-logs")
+async def clear_agent_logs(
+    current_user: dict = Depends(get_current_user)
+):
+    """Clear agent execution logs"""
+    try:
+        agent_orchestrator.clear_execution_log()
+        return {"message": "Agent logs cleared successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
