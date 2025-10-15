@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional, List
 from datetime import datetime
 
 from app.models.schemas import ChatRequest, ChatResponse, MessageCreate, Message
 from app.core.database import supabase
 from app.api.auth import get_current_user
-from app.services.voice_service import voice_service
+# from app.services.voice_service import voice_service  # Voice features removed
 # Use our custom agent orchestrator
 from app.agents.simple_orchestrator import agent_orchestrator
 
@@ -79,14 +78,8 @@ async def send_message(
             emotion = "neutral"
             metadata = {"fallback": True, "error": str(ai_error)}
         
-        # Generate voice response if requested
+        # Voice features removed - no audio URL
         audio_url = None
-        if chat_request.voice_mode:
-            try:
-                audio_url = await voice_service.text_to_speech(ai_response)
-            except Exception as e:
-                print(f"TTS generation failed: {e}")
-                # Continue without audio
         
         # Save AI response
         ai_message = {
