@@ -47,10 +47,11 @@ class VoiceService:
                 temp_path = temp_file.name
 
             # Generate speech
+            print(f"Generating TTS for text: {text[:50]}...")
             tts = gTTS(text=text, lang=language, slow=False)
             await asyncio.to_thread(tts.save, temp_path)
 
-            # Upload to Supabase storage (with fallback)
+            # Upload to Supabase storage
             audio_url = await self._upload_audio_to_storage(temp_path, "tts")
             
             # Clean up temporary file
@@ -61,8 +62,7 @@ class VoiceService:
             
         except Exception as e:
             print(f"Error generating speech: {e}")
-            # Return None instead of failing - app can work without audio
-            return None
+            raise Exception(f"Failed to generate speech: {str(e)}")
 
     async def _upload_audio_to_storage(self, file_path: str, folder: str = "audio") -> str:
         """Upload audio file to Supabase storage and return public URL"""
@@ -75,24 +75,21 @@ class VoiceService:
             async with aiofiles.open(file_path, 'rb') as f:
                 file_data = await f.read()
             
-            # Try to upload to Supabase storage
-            try:
-                response = supabase.storage.from_("audio").upload(filename, file_data)
-                
-                if response:
-                    # Get public URL
-                    public_url = supabase.storage.from_("audio").get_public_url(filename)
-                    return public_url
-            except Exception as storage_error:
-                print(f"Storage upload failed (using fallback): {storage_error}")
-                # Return a placeholder URL if storage fails
-                # In production, you'd want to set up Supabase storage bucket
-                return f"https://placeholder-audio-url.com/{filename}"
+            # Upload to Supabase storage
+            print(f"Uploading audio to Supabase storage: {filename}")
+            response = supabase.storage.from_("audio").upload(filename, file_data)
+            
+            if response:
+                # Get public URL
+                public_url = supabase.storage.from_("audio").get_public_url(filename)
+                print(f"✓ Audio uploaded successfully: {public_url}")
+                return public_url
+            else:
+                raise Exception("Failed to upload audio to storage")
                 
         except Exception as e:
-            print(f"Error uploading audio: {e}")
-            # Return placeholder instead of failing
-            return "https://placeholder-audio-url.com/audio.mp3"
+            print(f"Error uploading audio to storage: {e}")
+            raise Exception(f"Failed to upload audio: {str(e)}")
 
     async def validate_audio_file(self, file_path: str, max_size: int = MAX_FILE_SIZE) -> bool:
         """Validate audio file format and size (simplified for deployment)"""

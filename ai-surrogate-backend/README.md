@@ -1,16 +1,19 @@
 # AI Surrogate Backend
 
-FastAPI backend server for AI Surrogate app with LangGraph agents, Gemini AI, and voice processing.
+FastAPI backend server for AI Surrogate app with custom multi-agent AI system, Gemini AI, and voice processing.
+
+🌐 **Deployed at**: https://ai-surrogate.onrender.com
 
 ## Features
 
-- 🤖 Multi-agent AI system with LangGraph
-- 🧠 Google Gemini 1.5 Flash integration
-- 🎤 Whisper speech-to-text
-- 🔊 gTTS text-to-speech
+- 🤖 Custom multi-agent AI orchestrator (ChatAgent, EmotionAgent, MemoryAgent, SchedulerAgent, DocsAgent)
+- 🧠 Google Gemini Flash Latest integration
+- 🎤 Speech-to-text processing (Whisper disabled - using placeholder)
+- 🔊 gTTS text-to-speech with fallback handling
 - 📊 Memory and emotion tracking
-- 🔐 Supabase authentication
+- 🔐 Supabase authentication with JWT
 - 🚀 FastAPI with async support
+- 🌐 Deployed on Render with auto-scaling
 
 ## Quick Start
 
@@ -55,34 +58,113 @@ Required environment variables:
 
 - `SUPABASE_URL` - Your Supabase project URL
 - `SUPABASE_ANON_KEY` - Supabase anonymous key
-- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (for admin operations)
 - `GEMINI_API_KEY` - Google AI Studio API key
 
+**Note**: All environment variables are configured in Render deployment dashboard.
+
 ## API Endpoints
+
+### Health & Diagnostics
+- `GET /health` - Health check endpoint
+- `GET /debug-ai` - Check AI service configuration
+- `GET /test-gemini-direct` - Test Gemini API directly
+- `GET /list-models` - List available Gemini models
 
 ### Authentication
 - `POST /auth/login` - Login user
 - `POST /auth/register` - Register user
-- `GET /auth/me` - Get current user
+- `GET /auth/me` - Get current user (requires Bearer token)
 
 ### Chat
-- `POST /chat/` - Send message and get AI response
+- `POST /chat` - Send message and get AI response (requires Bearer token)
 - `GET /chat/{thread_id}/messages` - Get conversation history
 
+**Note**: User messages are saved by frontend before API call to avoid duplicates.
+
 ### Voice
-- `POST /voice/transcribe` - Transcribe audio to text
-- `POST /voice/speak` - Convert text to speech
-- `POST /voice/process` - Full voice conversation flow
+- `POST /voice/transcribe` - Transcribe audio to text (requires Bearer token)
+- `POST /voice/speak` - Convert text to speech (requires Bearer token)
+- `POST /voice/process` - Full voice conversation flow (requires Bearer token, file upload)
+
+**Note**: Voice upload requires `multipart/form-data` with field name `file`.
 
 ### Memory
-- `GET /memory/` - Get user memories
-- `POST /memory/analyze` - Analyze conversation patterns
+- `GET /memory/` - Get user memories (requires Bearer token)
+- `POST /memory/analyze` - Analyze conversation patterns (requires Bearer token)
 
 ## Architecture
 
-- **FastAPI** - Modern Python web framework
-- **LangGraph** - Agent orchestration system
-- **Supabase** - Database and authentication
-- **Whisper** - Local speech recognition
-- **gTTS** - Text-to-speech synthesis
-- **Gemini 1.5 Flash** - AI language model
+- **FastAPI** - Modern Python web framework with async support
+- **Custom Agent Orchestrator** - Lightweight multi-agent system (alternative to LangGraph)
+  - `ChatAgent` - Main conversation handler
+  - `EmotionAgent` - Emotion detection and tracking
+  - `MemoryAgent` - Long-term memory management
+  - `SchedulerAgent` - Task and schedule management
+  - `DocsAgent` - Documentation and knowledge retrieval
+- **Supabase** - PostgreSQL database, authentication (JWT), and real-time subscriptions
+- **Whisper STT** - Speech-to-text (currently disabled due to heavy dependencies)
+- **gTTS** - Text-to-speech synthesis with fallback handling
+- **Gemini Flash Latest** - AI language model (gemini-flash-latest)
+- **Render** - Cloud deployment platform
+
+## Recent Updates & Fixes
+
+### ✅ Fixed Issues:
+1. **Model Compatibility** - Updated from `gemini-1.5-flash` to `gemini-flash-latest` for API compatibility
+2. **Authentication** - Fixed `get_current_user()` to return dict instead of User object
+3. **Supabase Queries** - Changed `.single()` to `.execute()` for proper data access
+4. **Duplicate Messages** - Removed user message insertion from backend (frontend handles it)
+5. **Voice Service** - Added fallback handling for Supabase storage failures
+6. **Error Handling** - Improved error messages and logging throughout
+
+### ⚠️ Known Limitations:
+1. **Whisper STT** - Disabled due to large ML model dependencies (uses placeholder)
+2. **Voice Upload** - Requires additional native module setup for production APK
+
+## Authentication
+
+All protected endpoints require Bearer token authentication:
+
+```bash
+Authorization: Bearer <supabase_access_token>
+```
+
+Tokens are obtained from Supabase authentication and managed by the frontend.
+
+## Development
+
+### Local Testing
+```bash
+# Run server
+python main.py
+
+# Test AI service
+curl http://localhost:8000/debug-ai
+
+# Test Gemini directly
+curl http://localhost:8000/test-gemini-direct
+```
+
+### Database Schema
+Required Supabase tables:
+- `profiles` - User profiles
+- `threads` - Conversation threads
+- `messages` - Chat messages (with RLS policies)
+- `memories` - User memory storage
+- `emotions` - Emotion tracking
+
+## Deployment on Render
+
+1. Connected to GitHub repository
+2. Auto-deploys on push to main branch
+3. Environment variables configured in dashboard
+4. Health check endpoint: `/health`
+5. Build command: `pip install -r requirements.txt`
+6. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+
+## Developer
+
+Developed with ❤️ for AI Surrogate mobile app
+
+**Tech Stack**: Python 3.11, FastAPI, Supabase, Google Gemini AI, gTTS

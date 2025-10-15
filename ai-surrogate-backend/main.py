@@ -174,6 +174,44 @@ async def test_gemini_direct():
             "traceback": traceback.format_exc()
         }
 
+@app.get("/test-storage")
+async def test_storage():
+    """Test Supabase storage bucket access"""
+    try:
+        from app.core.database import supabase
+        import tempfile
+        import os
+        
+        # Create a test file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode='w') as f:
+            f.write("Test storage upload")
+            test_file_path = f.name
+        
+        # Try to upload
+        with open(test_file_path, 'rb') as f:
+            file_data = f.read()
+        
+        response = supabase.storage.from_("audio").upload("test/test.txt", file_data)
+        
+        # Get public URL
+        public_url = supabase.storage.from_("audio").get_public_url("test/test.txt")
+        
+        # Clean up
+        os.unlink(test_file_path)
+        
+        return {
+            "status": "success",
+            "message": "Storage bucket is working!",
+            "test_url": public_url
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(
