@@ -228,6 +228,17 @@ export default function ChatScreen({ route, navigation }: Props) {
         return;
       }
 
+      console.log('Recording stopped, file path:', result);
+
+      // For now, just show a message that voice was received
+      // Full voice processing requires additional setup
+      Alert.alert(
+        'Voice Received',
+        'Voice message received! Full voice processing is being set up. For now, please use text chat.',
+        [{ text: 'OK' }]
+      );
+      
+      /* Temporarily disabled - requires more setup
       // Send audio to backend for transcription and AI response
       const formData = new FormData();
       formData.append('file', {
@@ -252,8 +263,9 @@ export default function ChatScreen({ route, navigation }: Props) {
       }
 
       setIsTyping(true);
+      */
     } catch (error: any) {
-      console.error('Error stopping recording:', error);
+      console.error('Error with voice recording:', error);
       Alert.alert('Error', error.message || 'Failed to process voice message');
     }
   };
