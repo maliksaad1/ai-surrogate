@@ -25,17 +25,8 @@ async def send_message(
         if not thread_check.data or len(thread_check.data) == 0:
             raise HTTPException(status_code=404, detail="Thread not found")
         
-        # Save user message
-        user_message = {
-            "thread_id": chat_request.thread_id,
-            "role": "user",
-            "content": chat_request.message
-        }
-        
-        user_msg_response = supabase.table("messages").insert(user_message).execute()
-        
-        if not user_msg_response.data:
-            raise HTTPException(status_code=400, detail="Failed to save user message")
+        # Note: User message is already saved by the frontend, so we skip saving it here
+        # to avoid duplicates
         
         # Get conversation context (last 10 messages)
         recent_messages = supabase.table("messages").select("role, content").eq("thread_id", chat_request.thread_id).order("created_at", desc=True).limit(10).execute()
