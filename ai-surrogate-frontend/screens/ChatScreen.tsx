@@ -312,6 +312,9 @@ export default function ChatScreen({ route, navigation }: Props) {
           isTyping={isTyping}
           messagesContainerStyle={styles.messagesContainer}
           placeholder="Type a message..."
+          textInputStyle={styles.textInput}
+          alwaysShowSend
+          bottomOffset={Platform.OS === 'ios' ? 0 : 0}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -343,15 +346,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   textInput: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.primary + '30',
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    marginHorizontal: Spacing.sm,
     color: Colors.text,
     fontSize: Fonts.sizes.md,
+    paddingTop: Platform.OS === 'ios' ? 8 : 0,
+    paddingHorizontal: Spacing.sm,
+    backgroundColor: 'transparent',
   },
   sendButton: {
     marginRight: Spacing.md,

@@ -128,35 +128,96 @@ export default function HomeScreen({ navigation }: Props) {
     return 'No messages yet';
   };
 
+  const deleteThread = async (threadId: string) => {
+    Alert.alert(
+      'Delete Chat',
+      'Are you sure you want to delete this conversation? This action cannot be undone.',
+      [
+        {
+          text: 'No',
+          style: 'cancel',
+        },
+        {
+          text: 'Yes',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Delete all messages in the thread first
+              const { error: messagesError } = await supabase
+                .from('messages')
+                .delete()
+                .eq('thread_id', threadId);
+
+              if (messagesError) throw messagesError;
+
+              // Then delete the thread
+              const { error: threadError } = await supabase
+                .from('threads')
+                .delete()
+                .eq('id', threadId);
+
+              if (threadError) throw threadError;
+
+              // Refresh the thread list
+              loadThreads();
+              
+              Alert.alert('Success', 'Chat deleted successfully');
+            } catch (error: any) {
+              Alert.alert('Error', 'Failed to delete chat');
+              console.error('Error deleting thread:', error);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   const renderThread = ({ item }: { item: Thread }) => (
-    <TouchableOpacity
-      style={styles.threadItem}
-      onPress={() => navigation.navigate('Chat', { threadId: item.id })}
-      activeOpacity={0.7}
-    >
-      <LinearGradient
-        colors={[Colors.surface, Colors.surface + '80']}
-        style={styles.threadGradient}
+    <View style={styles.threadItem}>
+      <TouchableOpacity
+        style={styles.threadTouchable}
+        onPress={() => navigation.navigate('Chat', { threadId: item.id })}
+        activeOpacity={0.7}
       >
-        <View style={styles.threadContent}>
-          <View style={styles.threadHeader}>
-            <Text style={styles.threadTitle}>{item.title}</Text>
-            <Text style={styles.threadTime}>
-              {formatDate(item.last_message_at)}
+        <LinearGradient
+          colors={[Colors.surface, Colors.surface + '80']}
+          style={styles.threadGradient}
+        >
+          <View style={styles.threadContent}>
+            <View style={styles.threadHeader}>
+              <Text style={styles.threadTitle}>{item.title}</Text>
+              <Text style={styles.threadTime}>
+                {formatDate(item.last_message_at)}
+              </Text>
+            </View>
+            <Text style={styles.threadPreview}>
+              {getLastMessage(item)}
             </Text>
           </View>
-          <Text style={styles.threadPreview}>
-            {getLastMessage(item)}
-          </Text>
-        </View>
-        <View style={styles.threadIndicator}>
-          <LinearGradient
-            colors={[Colors.primary, Colors.secondary]}
-            style={styles.indicator}
-          />
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
+          <View style={styles.threadIndicator}>
+            <LinearGradient
+              colors={[Colors.primary, Colors.secondary]}
+              style={styles.indicator}
+            />
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+      
+      {/* Delete Button */}
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => deleteThread(item.id)}
+        activeOpacity={0.7}
+      >
+        <LinearGradient
+          colors={['#FF4444', '#CC0000']}
+          style={styles.deleteGradient}
+        >
+          <Ionicons name="trash-outline" size={20} color={Colors.background} />
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
   );
 
   const renderEmptyState = () => (
@@ -255,6 +316,10 @@ const styles = StyleSheet.create({
   },
   threadItem: {
     marginBottom: Spacing.md,
+    position: 'relative',
+  },
+  threadTouchable: {
+    flex: 1,
   },
   threadGradient: {
     borderRadius: BorderRadius.md,
@@ -298,6 +363,24 @@ const styles = StyleSheet.create({
     width: 4,
     height: 40,
     borderRadius: 2,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+  },
+  deleteGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF0000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   emptyState: {
     flex: 1,
