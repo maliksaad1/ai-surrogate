@@ -312,7 +312,9 @@ export default function ChatScreen({ route, navigation }: Props) {
           isTyping={isTyping}
           messagesContainerStyle={styles.messagesContainer}
           placeholder="Type a message..."
-          textInputStyle={styles.textInput}
+          textInputProps={{
+            style: styles.textInput,
+          }}
           alwaysShowSend
           bottomOffset={Platform.OS === 'ios' ? 0 : 0}
         />
