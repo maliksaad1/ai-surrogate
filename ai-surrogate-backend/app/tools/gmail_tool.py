@@ -77,6 +77,14 @@ class GmailTool(BaseTool):
             cc = parameters.get("cc", [])
             bcc = parameters.get("bcc", [])
             
+            # Validate required parameters
+            if not to_email:
+                return ToolResult(
+                    success=False,
+                    error="Recipient email address is required",
+                    message="Please specify the recipient email address"
+                )
+            
             # Validate email configuration
             if not self.gmail_address or not self.gmail_app_password:
                 return ToolResult(
@@ -88,13 +96,13 @@ class GmailTool(BaseTool):
             # Create message
             msg = MIMEMultipart()
             msg['From'] = self.gmail_address
-            msg['To'] = to_email if isinstance(to_email, str) else ", ".join(to_email)
+            msg['To'] = to_email if isinstance(to_email, str) else ", ".join(to_email) if isinstance(to_email, list) else str(to_email)
             msg['Subject'] = subject
             
             if cc:
-                msg['Cc'] = ", ".join(cc) if isinstance(cc, list) else cc
+                msg['Cc'] = ", ".join(cc) if isinstance(cc, list) else str(cc)
             if bcc:
-                msg['Bcc'] = ", ".join(bcc) if isinstance(bcc, list) else bcc
+                msg['Bcc'] = ", ".join(bcc) if isinstance(bcc, list) else str(bcc)
             
             # Add body
             msg.attach(MIMEText(body, 'plain'))
@@ -104,11 +112,24 @@ class GmailTool(BaseTool):
                 server.starttls()
                 server.login(self.gmail_address, self.gmail_app_password)
                 
-                recipients = [to_email] if isinstance(to_email, str) else to_email
+                # Build recipient list
+                recipients: List[str] = []
+                if isinstance(to_email, str):
+                    recipients.append(to_email)
+                elif isinstance(to_email, list):
+                    recipients.extend(to_email)
+                
                 if cc:
-                    recipients.extend(cc if isinstance(cc, list) else [cc])
+                    if isinstance(cc, list):
+                        recipients.extend(cc)
+                    elif isinstance(cc, str):
+                        recipients.append(cc)
+                
                 if bcc:
-                    recipients.extend(bcc if isinstance(bcc, list) else [bcc])
+                    if isinstance(bcc, list):
+                        recipients.extend(bcc)
+                    elif isinstance(bcc, str):
+                        recipients.append(bcc)
                 
                 server.send_message(msg)
             
@@ -165,15 +186,17 @@ class GmailTool(BaseTool):
             
             for email_id in reversed(recent_ids):
                 _, msg_data = mail.fetch(email_id, '(RFC822)')
-                email_body = msg_data[0][1]
-                email_message = email.message_from_bytes(email_body)
-                
-                emails.append({
-                    "from": email_message['From'],
-                    "subject": email_message['Subject'],
-                    "date": email_message['Date'],
-                    "snippet": self._get_email_body(email_message)[:200]
-                })
+                if msg_data and msg_data[0]:
+                    email_body = msg_data[0][1]
+                    if isinstance(email_body, bytes):
+                        email_message = email.message_from_bytes(email_body)
+                        
+                        emails.append({
+                            "from": email_message.get('From', 'Unknown'),
+                            "subject": email_message.get('Subject', 'No Subject'),
+                            "date": email_message.get('Date', ''),
+                            "snippet": self._get_email_body(email_message)[:200]
+                        })
             
             mail.close()
             mail.logout()
@@ -224,14 +247,16 @@ class GmailTool(BaseTool):
             emails = []
             for email_id in reversed(recent_ids):
                 _, msg_data = mail.fetch(email_id, '(RFC822)')
-                email_body = msg_data[0][1]
-                email_message = email.message_from_bytes(email_body)
-                
-                emails.append({
-                    "from": email_message['From'],
-                    "subject": email_message['Subject'],
-                    "date": email_message['Date']
-                })
+                if msg_data and msg_data[0]:
+                    email_body = msg_data[0][1]
+                    if isinstance(email_body, bytes):
+                        email_message = email.message_from_bytes(email_body)
+                        
+                        emails.append({
+                            "from": email_message.get('From', 'Unknown'),
+                            "subject": email_message.get('Subject', 'No Subject'),
+                            "date": email_message.get('Date', '')
+                        })
             
             mail.close()
             mail.logout()
