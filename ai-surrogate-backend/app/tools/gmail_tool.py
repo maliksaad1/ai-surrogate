@@ -27,9 +27,9 @@ class GmailTool(BaseTool):
     
     def __init__(self):
         super().__init__(
-            name="send_email",
-            description="Send an email to someone. Use this when the user wants to email someone, send a message via email, or communicate through email.",
-            requires_confirmation=True,  # Always confirm before sending emails
+            name="gmail_tool",
+            description="Create email drafts in Gmail or read emails. Use this when the user wants to compose an email, write to someone, or check their inbox. Emails are saved as drafts for user review before sending.",
+            requires_confirmation=True,  # Confirm before creating drafts
             requires_auth=True
         )
         
@@ -48,9 +48,11 @@ class GmailTool(BaseTool):
         context: ToolExecutionContext
     ) -> ToolResult:
         """Execute Gmail operation"""
-        operation = parameters.get("operation", "send")
+        operation = parameters.get("operation", "create_draft")
         
-        if operation == "send":
+        if operation == "create_draft":
+            return await self._create_draft(parameters, context)
+        elif operation == "send":
             return await self._send_email(parameters, context)
         elif operation == "read":
             return await self._read_emails(parameters, context)
@@ -61,6 +63,88 @@ class GmailTool(BaseTool):
                 success=False,
                 error=f"Unknown operation: {operation}",
                 message="Invalid operation specified"
+            )
+    
+    async def _create_draft(
+        self, 
+        parameters: Dict[str, Any],
+        context: ToolExecutionContext
+    ) -> ToolResult:
+        """Create an email draft in Gmail"""
+        try:
+            # Extract parameters
+            to_email = parameters.get("to")
+            subject = parameters.get("subject", "Message from AI Surrogate")
+            body = parameters.get("body", "")
+            cc = parameters.get("cc", [])
+            bcc = parameters.get("bcc", [])
+            
+            # Validate required parameters
+            if not to_email:
+                return ToolResult(
+                    success=False,
+                    error="Recipient email address is required",
+                    message="Please specify the recipient email address"
+                )
+            
+            # Validate email configuration
+            if not self.gmail_address or not self.gmail_app_password:
+                return ToolResult(
+                    success=False,
+                    error="Gmail credentials not configured",
+                    message="Gmail integration not set up. Please configure GMAIL_ADDRESS and GMAIL_APP_PASSWORD in environment variables."
+                )
+            
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = self.gmail_address
+            msg['To'] = to_email if isinstance(to_email, str) else ", ".join(to_email) if isinstance(to_email, list) else str(to_email)
+            msg['Subject'] = subject
+            
+            if cc:
+                msg['Cc'] = ", ".join(cc) if isinstance(cc, list) else str(cc)
+            if bcc:
+                msg['Bcc'] = ", ".join(bcc) if isinstance(bcc, list) else str(bcc)
+            
+            # Add body
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Save as draft using IMAP
+            mail = imaplib.IMAP4_SSL(self.imap_server)
+            mail.login(self.gmail_address, self.gmail_app_password)
+            
+            # Create draft in [Gmail]/Drafts folder
+            mail.select('[Gmail]/Drafts')
+            mail.append(
+                '[Gmail]/Drafts',
+                '',
+                imaplib.Time2Internaldate(datetime.utcnow()),
+                msg.as_bytes()
+            )
+            
+            mail.close()
+            mail.logout()
+            
+            return ToolResult(
+                success=True,
+                data={
+                    "to": to_email,
+                    "subject": subject,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "operation": "draft"
+                },
+                message=f"✅ Email draft created successfully!\n\nTo: {to_email}\nSubject: {subject}\n\nYou can review and send it from your Gmail drafts.",
+                metadata={
+                    "operation": "create_draft",
+                    "requires_manual_send": True
+                }
+            )
+            
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                error=str(e),
+                message=f"Failed to create email draft: {str(e)}"
             )
     
     async def _send_email(
@@ -292,20 +376,20 @@ class GmailTool(BaseTool):
             "properties": {
                 "operation": {
                     "type": "string",
-                    "enum": ["send", "read", "search"],
-                    "description": "The operation to perform"
+                    "enum": ["create_draft", "send", "read", "search"],
+                    "description": "The operation to perform (default: create_draft for safety)"
                 },
                 "to": {
                     "type": "string",
-                    "description": "Recipient email address (for send operation)"
+                    "description": "Recipient email address (for create_draft/send operations)"
                 },
                 "subject": {
                     "type": "string",
-                    "description": "Email subject (for send operation)"
+                    "description": "Email subject (for create_draft/send operations)"
                 },
                 "body": {
                     "type": "string",
-                    "description": "Email body content (for send operation)"
+                    "description": "Email body content (for create_draft/send operations)"
                 },
                 "query": {
                     "type": "string",
@@ -317,7 +401,7 @@ class GmailTool(BaseTool):
                     "default": 10
                 }
             },
-            "required": ["operation"]
+            "required": []
         }
     
     def get_confirmation_prompt(
@@ -325,10 +409,24 @@ class GmailTool(BaseTool):
         parameters: Dict[str, Any],
         context: ToolExecutionContext
     ) -> str:
-        """Generate confirmation prompt for email sending"""
-        operation = parameters.get("operation")
+        """Generate confirmation prompt for email operations"""
+        operation = parameters.get("operation", "create_draft")
         
-        if operation == "send":
+        if operation == "create_draft":
+            to = parameters.get("to")
+            subject = parameters.get("subject", "No subject")
+            body_preview = parameters.get("body", "")[:100]
+            
+            return f"""📧 Create Email Draft
+
+To: {to}
+Subject: {subject}
+Message: {body_preview}{'...' if len(parameters.get('body', '')) > 100 else ''}
+
+Shall I save this as a draft in your Gmail?
+You can review and send it later."""
+        
+        elif operation == "send":
             to = parameters.get("to")
             subject = parameters.get("subject", "No subject")
             body_preview = parameters.get("body", "")[:100]

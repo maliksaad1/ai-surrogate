@@ -138,18 +138,18 @@ Response:"""
         message_lower = message.lower()
         
         # Email-related keywords
-        send_email_keywords = ["send email", "email", "send message to", "write email", "compose email"]
+        compose_email_keywords = ["send email", "email", "send message to", "write email", "compose email", "draft email"]
         read_email_keywords = ["check email", "read email", "inbox", "check messages", "any emails"]
         
-        if any(keyword in message_lower for keyword in send_email_keywords):
-            # Check if we have enough information to send email
+        if any(keyword in message_lower for keyword in compose_email_keywords):
+            # Check if we have enough information to create draft
             has_recipient = "@" in message or any(name in message_lower for name in ["talha", "ahmad", "saad"])
             
-            if has_recipient or "send" in message_lower:
-                return {"use_tool": True, "tool_name": "send_email", "reason": "User wants to send email"}
+            if has_recipient or "send" in message_lower or "email" in message_lower:
+                return {"use_tool": True, "tool_name": "gmail_tool", "reason": "User wants to compose email draft"}
         
         if any(keyword in message_lower for keyword in read_email_keywords):
-            return {"use_tool": True, "tool_name": "send_email", "reason": "User wants to read emails"}
+            return {"use_tool": True, "tool_name": "gmail_tool", "reason": "User wants to read emails"}
         
         return {"use_tool": False, "tool_name": None, "reason": "No tool needed"}
     
@@ -157,10 +157,10 @@ Response:"""
         """Extract tool parameters from user message using AI"""
         message_lower = message.lower()
         
-        if tool_name == "send_email":
+        if tool_name == "gmail_tool":
             # Extract email parameters
             params = {
-                "operation": "send"
+                "operation": "create_draft"  # Default to creating drafts for safety
             }
             
             # Extract recipient - look for common patterns
