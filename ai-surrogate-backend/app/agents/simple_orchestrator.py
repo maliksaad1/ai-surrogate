@@ -7,6 +7,7 @@ from enum import Enum
 
 from app.core.config import GEMINI_API_KEY
 from app.services.ai_service import ai_service
+from app.agents.tool_agent import communication_agent, scheduler_agent_enhanced
 
 class AgentStatus(Enum):
     """Agent execution status for visual feedback"""
@@ -23,6 +24,7 @@ class AgentType:
     MEMORY = "memory"
     SCHEDULER = "scheduler"
     DOCS = "docs"
+    COMMUNICATION = "communication"  # New tool-enabled agent
 
 class SimpleAgentOrchestrator:
     """
@@ -35,8 +37,9 @@ class SimpleAgentOrchestrator:
             AgentType.CHAT: ChatAgent(),
             AgentType.EMOTION: EmotionAgent(),
             AgentType.MEMORY: MemoryAgent(),
-            AgentType.SCHEDULER: SchedulerAgent(),
+            AgentType.SCHEDULER: scheduler_agent_enhanced,  # Use enhanced scheduler with tools
             AgentType.DOCS: DocsAgent(),
+            AgentType.COMMUNICATION: communication_agent,  # New communication agent with tools
         }
         self.status_callback = None  # For real-time status updates
         self.execution_log = []  # Track agent execution history
@@ -191,16 +194,23 @@ class SimpleAgentOrchestrator:
     
     async def _route_message(self, message: str) -> str:
         """
-        Analyze message content to determine which agent should handle it
+        Analyze message content to determine which agent should handle it.
+        Now includes Communication agent for email/messaging.
         """
         try:
             # Use simple keyword-based routing with optional AI enhancement
             message_lower = message.lower()
             
-            # Schedule-related keywords
+            # Communication keywords (NEW - highest priority for tool usage)
+            communication_keywords = [
+                "send email", "email", "send message to", "write email", "compose email",
+                "check email", "inbox", "message", "notify", "tell"
+            ]
+            
+            # Schedule-related keywords  
             schedule_keywords = [
                 "schedule", "calendar", "appointment", "meeting", "reminder",
-                "tomorrow", "today", "next week", "plan", "time", "date"
+                "tomorrow", "today", "next week", "plan", "time", "date", "book"
             ]
             
             # Document/search keywords
@@ -215,9 +225,11 @@ class SimpleAgentOrchestrator:
                 "last time", "before", "history"
             ]
             
-            # Check for keyword matches
-            if any(keyword in message_lower for keyword in schedule_keywords):
-                return AgentType.SCHEDULER
+            # Check for keyword matches (priority order matters!)
+            if any(keyword in message_lower for keyword in communication_keywords):
+                return AgentType.COMMUNICATION  # Use tool-enabled communication agent
+            elif any(keyword in message_lower for keyword in schedule_keywords):
+                return AgentType.SCHEDULER  # Use tool-enabled scheduler agent
             elif any(keyword in message_lower for keyword in docs_keywords):
                 return AgentType.DOCS
             elif any(keyword in message_lower for keyword in memory_keywords):
@@ -292,7 +304,8 @@ class SimpleAgentOrchestrator:
             AgentType.EMOTION: "Emotion Analyzer",
             AgentType.MEMORY: "Memory Manager",
             AgentType.SCHEDULER: "Schedule Assistant",
-            AgentType.DOCS: "Knowledge Assistant"
+            AgentType.DOCS: "Knowledge Assistant",
+            AgentType.COMMUNICATION: "Communication Agent"  # NEW
         }
         return names.get(agent_type, "Unknown Agent")
     
@@ -303,7 +316,8 @@ class SimpleAgentOrchestrator:
             AgentType.EMOTION: "😊",
             AgentType.MEMORY: "🧠",
             AgentType.SCHEDULER: "📅",
-            AgentType.DOCS: "📚"
+            AgentType.DOCS: "📚",
+            AgentType.COMMUNICATION: "📧"  # NEW
         }
         return icons.get(agent_type, "🤖")
     

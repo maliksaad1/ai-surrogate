@@ -11,6 +11,13 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 # Gemini AI configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+# Gmail configuration for Communication Agent
+GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")  # Your Gmail address
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")  # Gmail app password (not regular password)
+
+# Google Calendar configuration
+GOOGLE_CALENDAR_CREDENTIALS = os.getenv("GOOGLE_CALENDAR_CREDENTIALS")  # Path to credentials JSON
+
 # Backend configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
