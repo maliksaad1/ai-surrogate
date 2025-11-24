@@ -20,11 +20,35 @@ class AgentStatus(Enum):
 
 class AgentType:
     CHAT = "chat"
+from typing import Dict, Any, List, Optional, Callable
+import json
+import asyncio
+from datetime import datetime
+import google.generativeai as genai
+from enum import Enum
+
+from app.core.config import GEMINI_API_KEY
+from app.services.ai_service import ai_service
+from app.agents.tool_agent import communication_agent, scheduler_agent_enhanced
+
+class AgentStatus(Enum):
+    """Agent execution status for visual feedback"""
+    IDLE = "idle"
+    ANALYZING = "analyzing"
+    PROCESSING = "processing"
+    COMPLETING = "completing"
+    COMPLETE = "complete"
+    ERROR = "error"
+
+class AgentType:
+    CHAT = "chat"
     EMOTION = "emotion"
     MEMORY = "memory"
     SCHEDULER = "scheduler"
     DOCS = "docs"
     COMMUNICATION = "communication"  # New tool-enabled agent
+
+from app.services.mcp_service import mcp_service
 
 class SimpleAgentOrchestrator:
     """
@@ -43,6 +67,10 @@ class SimpleAgentOrchestrator:
         }
         self.status_callback = None  # For real-time status updates
         self.execution_log = []  # Track agent execution history
+        
+        # Initialize MCP service
+        # Note: In a real app, this should be awaited in startup event
+        # For this script, we'll initialize lazily or rely on service self-initialization
     
     async def process_message(
         self, 
@@ -55,6 +83,9 @@ class SimpleAgentOrchestrator:
         """
         Process user message with enhanced visibility and MCP-like tool calling
         """
+        # Ensure MCP service is initialized
+        await mcp_service.initialize()
+        
         execution_trace = []  # Track all agent executions
         start_time = datetime.utcnow()
         
@@ -192,6 +223,10 @@ class SimpleAgentOrchestrator:
                 }
             }
     
+    async def shutdown(self):
+        """Cleanup resources"""
+        await mcp_service.shutdown()
+
     async def _route_message(self, message: str) -> str:
         """
         Analyze message content to determine which agent should handle it.
@@ -210,7 +245,8 @@ class SimpleAgentOrchestrator:
             # Schedule-related keywords  
             schedule_keywords = [
                 "schedule", "calendar", "appointment", "meeting", "reminder",
-                "tomorrow", "today", "next week", "plan", "time", "date", "book"
+                "tomorrow", "today", "next week", "plan", "time", "date", "book",
+                "what do i have", "upcoming"
             ]
             
             # Document/search keywords
